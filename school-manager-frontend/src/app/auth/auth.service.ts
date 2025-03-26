@@ -15,7 +15,7 @@ interface AuthResponseData {
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private apiKey = "AIzaSyC6vkTcSktI0ZGxoEa7zs2w4L1wUItKbfc";
+  private apiKey = "AIzaSyBYMAVj7CJFt_7YaaOY0FpUENfb7pJdwms";
   private signUpUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${this.apiKey}`;
   private loginUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${this.apiKey}`;
   private resetPasswordUrl = `https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${this.apiKey}`;
