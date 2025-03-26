@@ -16,7 +16,8 @@ export class AuthComponent {
 
   error: string | null = null;
   successMessage: string | null = null;
-  constructor(private authService: AuthService, private router: Router) { }
+  private router = inject(Router);
+  private authService = inject(AuthService);
 
   onSwitchMode() {
     this.isLoginMode = !this.isLoginMode;
@@ -40,7 +41,7 @@ export class AuthComponent {
         next: (resData) => {
           console.log('Logged in:', resData);
           this.isLoading = false;
-          this.router.navigate(['/summary']);                       //setezi ruta unde vrei sa mearga dupa login
+          this.router.navigate(['/forgot-password']);                       //setezi ruta unde vrei sa mearga dupa login
         },
         error: (errorMessage) => {
           console.log(errorMessage);

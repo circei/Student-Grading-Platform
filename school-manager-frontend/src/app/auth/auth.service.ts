@@ -1,4 +1,4 @@
-import { Injectable } from "@angular/core";
+import { inject, Injectable } from "@angular/core";
 import { BehaviorSubject, catchError, from, map, Observable, switchMap, take, tap, throwError } from "rxjs";
 import { User } from "../database/models/user.model";
 import { HttpClient, HttpErrorResponse } from "@angular/common/http";
@@ -25,13 +25,13 @@ export class AuthService {
   // BehaviorSubject to track the authenticated user (or null if not logged in)
   user = new BehaviorSubject<User | null>(null);
 
-  constructor(
-    private http: HttpClient,
-    private router: Router,
-    private databaseService: DatabaseService
-  ) {
+  constructor() {
     this.autoLogin();
   }
+
+  private http = inject(HttpClient);
+  private router = inject(Router);
+  private databaseService = inject(DatabaseService);
 
   signup(email: string, password: string): Observable<AuthResponseData> {
     const hashedPassword = btoa(password);

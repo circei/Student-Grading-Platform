@@ -1,10 +1,10 @@
-import { Injectable } from "@angular/core";
+import { inject, Injectable } from "@angular/core";
 import { Firestore, addDoc, collection, collectionData, deleteDoc, doc, getDoc, getDocs, query, runTransaction, setDoc, updateDoc, where, writeBatch } from "@angular/fire/firestore";
 import { catchError, from, map, Observable, tap, throwError } from "rxjs";
 
 @Injectable({ providedIn: 'root' })
 export class DatabaseService {
-  constructor(private firestore: Firestore) {}
+  private firestore = inject(Firestore);
 
   // Save a new user profile with default category & expense
   saveUserProfile(userId: string, email: string, hashedPassword: string): Observable<void> {
@@ -30,12 +30,10 @@ export class DatabaseService {
   getUserProfile(userId: string): Observable<any> {
     const userRef = doc(this.firestore, `users/${userId}`);
     return from(getDoc(userRef)).pipe(
-      map(docSnap => {
-        if (docSnap.exists()) {
-          return docSnap.data();
-        } else {
-          throw new Error('User profile not found');
-        }
+      map(docSnap => docSnap.exists() ? docSnap.data() : throwError(() => new Error('User profile not found'))),
+      catchError(error => {
+        console.error('Error fetching user profile:', error);
+        return throwError(() => error);
       })
     );
   }

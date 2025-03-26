@@ -13,6 +13,6 @@ export const appConfig: ApplicationConfig = {
     provideFirebaseApp(() => initializeApp(environment)),
     provideFirestore(() => getFirestore()),
     provideAuth(() => getAuth()),
-    provideHttpClient()
+    provideHttpClient(),
 ]
 };
