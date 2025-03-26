@@ -1,1 +1,235 @@
 /* You can add global styles to this file, and also import other style files */
+/* ===================== */
+/* === COLOR VARIABLES === */
+/* ===================== */
+:root {
+    --primary-color: #4CAF50;
+    --secondary-color: #6c757d;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #17a2b8;
+    --light-color: #f8f9fa;
+    --dark-color: #343a40;
+  
+    --text-color: #212529;
+    --muted-text-color: #6c757d;
+  
+    --background-color: #ffffff;
+    --background-alt-color: #f1f1f1;
+  
+    --border-radius: 8px;
+  
+    --font-family: 'Segoe UI', sans-serif;
+  }
+  
+  /* ===================== */
+  /* === GENERAL RESET === */
+  /* ===================== */
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-family);
+    background-color: var(--background-color);
+    color: var(--text-color);
+  }
+  
+  /* ===================== */
+  /* === TYPOGRAPHY === */
+  /* ===================== */
+  h1, h2, h3, h4, h5 {
+    color: var(--text-color);
+    margin-bottom: 12px;
+  }
+  
+  p {
+    color: var(--muted-text-color);
+    line-height: 1.6;
+  }
+  
+  /* ===================== */
+  /* === BUTTONS === */
+  /* ===================== */
+  button {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: 0.3s ease-in-out;
+  }
+  
+  button:hover:not(:disabled) {
+    background-color: #45A049;
+  }
+  
+  button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+  }
+  
+  button.btn-secondary {
+    background-color: var(--secondary-color);
+  }
+  
+  button.btn-danger {
+    background-color: var(--danger-color);
+  }
+  
+  button.btn-outline {
+    background: transparent;
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+  }
+  
+  button.btn-link {
+    background: none;
+    border: none;
+    color: var(--info-color);
+    padding: 0;
+    text-decoration: underline;
+  }
+  
+  button.btn-block {
+    width: 100%;
+  }
+  
+  /* ===================== */
+  /* === FORMS === */
+  /* ===================== */
+  input[type="text"], input[type="email"], input[type="password"], select, textarea {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 16px;
+    border: 1px solid #ccc;
+    border-radius: var(--border-radius);
+    box-sizing: border-box;
+  }
+  
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--primary-color);
+    outline: none;
+  }
+  
+  label {
+    font-weight: bold;
+    margin-bottom: 6px;
+    display: block;
+  }
+  
+  /* ===================== */
+  /* === CARDS === */
+  /* ===================== */
+  .card {
+    background-color: white;
+    padding: 16px;
+    margin: 16px 0;
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  /* ===================== */
+  /* === TABLES === */
+  /* ===================== */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 24px;
+  }
+  
+  th, td {
+    padding: 12px;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  
+  th {
+    background-color: var(--primary-color);
+    color: white;
+  }
+  
+  tr:nth-child(even) {
+    background-color: var(--background-alt-color);
+  }
+  
+  /* ===================== */
+  /* === ALERTS === */
+  /* ===================== */
+  .alert {
+    padding: 12px 20px;
+    margin-bottom: 16px;
+    border-radius: var(--border-radius);
+  }
+  
+  .alert-success {
+    background-color: #d4edda;
+    color: #155724;
+  }
+  
+  .alert-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+  }
+  
+  .alert-warning {
+    background-color: #fff3cd;
+    color: #856404;
+  }
+  
+  /* ===================== */
+  /* === BADGES === */
+  /* ===================== */
+  .badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: var(--border-radius);
+    background-color: var(--secondary-color);
+    color: white;
+    font-size: 12px;
+  }
+  
+  /* ===================== */
+  /* === NAVBAR === */
+  /* ===================== */
+  .navbar {
+    background-color: var(--dark-color);
+    color: white;
+    padding: 12px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .navbar a {
+    color: white;
+    text-decoration: none;
+    margin-left: 16px;
+  }
+  
+  .navbar a:hover {
+    text-decoration: underline;
+  }
+  
+  /* ===================== */
+  /* === SIDEBAR === */
+  /* ===================== */
+  .sidebar {
+    width: 250px;
+    background-color: var(--light-color);
+    height: 100vh;
+    padding: 20px;
+    position: fixed;
+  }
+  
+  .sidebar a {
+    display: block;
+    color: var(--text-color);
+    padding: 10px 0;
+    text-decoration: none;
+  }
+  
+  .sidebar a:hover {
+    background-color: var(--background-alt-color);
+    border-radius: var(--border-radius);
+  }
+  
