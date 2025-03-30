@@ -4,9 +4,13 @@ from pydantic import BaseModel
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
+from sqlalchemy.orm import Session
 
-# Initialize the FastAPI app
+from app.database import init_db, SessionLocal, User as DBUser
+
+# Initialize the FastAPI app and database
 app = FastAPI()
+init_db()  # Create tables if they don't exist
 
 # Security settings
 SECRET_KEY = "test"  # Use a strong secret key in production!
@@ -16,16 +20,13 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 30
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
-# In-memory "database"
-fake_users_db = {}
-
-# Pydantic models
+# Pydantic models for request/response validation
 class User(BaseModel):
     username: str
     email: str
 
-class UserInDB(User):
-    hashed_password: str
+    class Config:
+        orm_mode = True  # Enables compatibility with SQLAlchemy models
 
 class UserCreate(BaseModel):
     username: str
@@ -35,6 +36,14 @@ class UserCreate(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+# Dependency to get a DB session for each request
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 # Utility functions for password hashing and token generation
 def get_password_hash(password: str) -> str:
@@ -53,8 +62,8 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-# Dependency to get the current user from the token
-def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
+# Dependency to retrieve the current user from the JWT token
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> DBUser:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -68,24 +77,30 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
     except JWTError:
         raise credentials_exception
 
-    user = fake_users_db.get(username)
+    user = db.query(DBUser).filter(DBUser.username == username).first()
     if user is None:
         raise credentials_exception
     return user
 
 # Auth routes grouped under "/auth"
 @app.post("/auth/signup", response_model=User)
-def signup(user: UserCreate):
-    if user.username in fake_users_db:
+def signup(user: UserCreate, db: Session = Depends(get_db)):
+    # Check if the user already exists
+    existing_user = db.query(DBUser).filter(DBUser.username == user.username).first()
+    if existing_user:
         raise HTTPException(status_code=400, detail="Username already registered")
+    
+    # Create new user
     hashed_password = get_password_hash(user.password)
-    user_in_db = UserInDB(username=user.username, email=user.email, hashed_password=hashed_password)
-    fake_users_db[user.username] = user_in_db
-    return user_in_db
+    new_user = DBUser(username=user.username, email=user.email, hashed_password=hashed_password)
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
 
 @app.post("/auth/login", response_model=Token)
-def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    user_in_db = fake_users_db.get(form_data.username)
+def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    user_in_db = db.query(DBUser).filter(DBUser.username == form_data.username).first()
     if not user_in_db or not verify_password(form_data.password, user_in_db.hashed_password):
         raise HTTPException(status_code=400, detail="Incorrect username or password")
     
@@ -98,5 +113,5 @@ def login(form_data: OAuth2PasswordRequestForm = Depends()):
 
 # Protected route to get current user information
 @app.get("/users/me", response_model=User)
-def read_users_me(current_user: UserInDB = Depends(get_current_user)):
+def read_users_me(current_user: DBUser = Depends(get_current_user)):
     return current_user
