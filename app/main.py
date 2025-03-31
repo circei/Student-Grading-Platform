@@ -152,7 +152,6 @@ def get_current_user(token: HTTPAuthorizationCredentials = Depends(firebase_sche
 # ----------------------------
 # Protected Endpoints
 # ----------------------------
-
 @app.get("/users/me", response_model=User)
 def read_users_me(current_user: DBUser = Depends(get_current_user)):
     return current_user
@@ -168,3 +167,17 @@ def teacher_portal(user: dict = Depends(require_roles(["teacher"]))):
 @app.get("/student/area")
 def student_area(user: dict = Depends(require_roles(["student"]))):
     return {"message": "Welcome to the student area!", "user": user}
+
+# ----------------------------
+# HTTPS Entry Point
+# ----------------------------
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=443,
+        ssl_keyfile="app/cert/key.pem",   # Update with the path to your private key file
+        ssl_certfile="app/cert/cert.pem",   # Update with the path to your certificate file
+        reload=True
+    )
