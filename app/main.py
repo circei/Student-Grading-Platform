@@ -5,6 +5,7 @@ from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from typing import List
+from app.crud import create_grade, get_grades_by_student, update_grade, delete_grade
 
 import firebase_admin
 from firebase_admin import credentials, auth
@@ -49,6 +50,25 @@ class UserCreate(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+class GradeBase(BaseModel):
+    subject: str
+    grade: int
+
+class GradeCreate(GradeBase):
+    student_id: int
+
+class GradeUpdate(BaseModel):
+    grade: int
+
+class GradeResponse(GradeBase):
+    id: int
+    student_id: int
+
+    class Config:
+        orm_mode = True
+        from_attributes = True  # Required for Pydantic v2 to use from_orm
+
 
 # ----------------------------
 # Database Dependency
@@ -167,6 +187,35 @@ def teacher_portal(user: dict = Depends(require_roles(["teacher"]))):
 @app.get("/student/area")
 def student_area(user: dict = Depends(require_roles(["student"]))):
     return {"message": "Welcome to the student area!", "user": user}
+
+# ----------------------------
+# Grades Endpoints
+# ----------------------------
+
+@app.post("/grades/", response_model=GradeResponse)
+def add_grade(grade: GradeCreate, db: Session = Depends(get_db)):
+    created_grade = create_grade(db, student_id=grade.student_id, subject=grade.subject, grade=grade.grade)
+    return GradeResponse.from_orm(created_grade)
+
+@app.get("/grades/{student_id}", response_model=List[GradeResponse])
+def list_grades(student_id: int, db: Session = Depends(get_db)):
+    grades = get_grades_by_student(db, student_id)
+    return [GradeResponse.from_orm(grade) for grade in grades]
+
+
+@app.put("/grades/{grade_id}", response_model=GradeResponse)
+def modify_grade(grade_id: int, grade_update: GradeUpdate, db: Session = Depends(get_db)):
+    updated_grade = update_grade(db, grade_id, grade_update.grade)
+    if not updated_grade:
+        raise HTTPException(status_code=404, detail="Grade not found")
+    return GradeResponse.from_orm(updated_grade)
+
+@app.delete("/grades/{grade_id}", response_model=GradeResponse)
+def remove_grade(grade_id: int, db: Session = Depends(get_db)):
+    deleted_grade = delete_grade(db, grade_id)
+    if not deleted_grade:
+        raise HTTPException(status_code=404, detail="Grade not found")
+    return GradeResponse.from_orm(deleted_grade)
 
 # ----------------------------
 # HTTPS Entry Point

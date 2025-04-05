@@ -18,5 +18,13 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
 
+class Grade(Base):
+    __tablename__ = "grades"
+    id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer, nullable=False)  # Foreign key to User.id
+    subject = Column(String, nullable=False)
+    grade = Column(Integer, nullable=False)
+
+
 def init_db():
     Base.metadata.create_all(bind=engine)
