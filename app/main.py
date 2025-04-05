@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from typing import List
 from app.crud import create_grade, get_grades_by_student, update_grade, delete_grade
+from typing import Optional
 
 import firebase_admin
 from firebase_admin import credentials, auth
@@ -67,7 +68,11 @@ class GradeResponse(GradeBase):
 
     class Config:
         orm_mode = True
-        from_attributes = True  # Required for Pydantic v2 to use from_orm
+        from_attributes = True
+
+class UserProfileUpdate(BaseModel):
+    email: Optional[str] = None
+    password: Optional[str] = None
 
 
 # ----------------------------
@@ -216,6 +221,79 @@ def remove_grade(grade_id: int, db: Session = Depends(get_db)):
     if not deleted_grade:
         raise HTTPException(status_code=404, detail="Grade not found")
     return GradeResponse.from_orm(deleted_grade)
+
+# ----------------------------
+# User Profile Endpoints
+# ----------------------------
+
+# View profile endpoint (already exists in your code)
+@app.get("/users/me", response_model=User)
+def read_users_me(current_user: DBUser = Depends(get_current_user)):
+    return current_user
+
+# Update profile endpoint
+@app.put("/users/me", response_model=User)
+def update_profile(
+    profile_update: UserProfileUpdate,
+    db: Session = Depends(get_db),
+    current_user: DBUser = Depends(get_current_user)
+):
+    """Update the current user's profile."""
+    # Check if email is being updated and if it's already taken
+    if profile_update.email and profile_update.email != current_user.email:
+        existing_user = db.query(DBUser).filter(DBUser.email == profile_update.email).first()
+        if existing_user:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        current_user.email = profile_update.email
+    
+    # Update password if provided
+    if profile_update.password:
+        current_user.hashed_password = get_password_hash(profile_update.password)
+    
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+# Admin endpoint to get any user's profile
+@app.get("/users/{user_id}", response_model=User)
+def get_user_profile(
+    user_id: int, 
+    db: Session = Depends(get_db),
+    _: dict = Depends(require_roles(["admin"]))  # Only admins can view any profile
+):
+    """Get a user's profile by ID (admin only)."""
+    user = db.query(DBUser).filter(DBUser.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+# Admin endpoint to update any user's profile
+@app.put("/users/{user_id}", response_model=User)
+def update_user_profile(
+    user_id: int,
+    profile_update: UserProfileUpdate,
+    db: Session = Depends(get_db),
+    _: dict = Depends(require_roles(["admin"]))  # Only admins can update any profile
+):
+    """Update any user's profile (admin only)."""
+    user = db.query(DBUser).filter(DBUser.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check if email is being updated and if it's already taken
+    if profile_update.email and profile_update.email != user.email:
+        existing_user = db.query(DBUser).filter(DBUser.email == profile_update.email).first()
+        if existing_user:
+            raise HTTPException(status_code=400, detail="Email already registered")
+        user.email = profile_update.email
+    
+    # Update password if provided
+    if profile_update.password:
+        user.hashed_password = get_password_hash(profile_update.password)
+    
+    db.commit()
+    db.refresh(user)
+    return user
 
 # ----------------------------
 # HTTPS Entry Point
