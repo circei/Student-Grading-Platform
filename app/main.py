@@ -316,8 +316,8 @@ def remove_grade(grade_id: int = Path(..., gt=0, description="The grade ID"), db
 @app.post("/grades/upload", response_model=BulkUploadResponse)
 async def upload_grades(
     file: UploadFile = File(...),
-    min_grade: int = Field(0, ge=0, le=100),
-    max_grade: int = Field(100, ge=0, le=100),
+    min_grade: int = Query(0, ge=0, le=100),
+    max_grade: int = Query(100, ge=0, le=100),
     db: Session = Depends(get_db),
     _: dict = Depends(require_roles(["admin", "teacher"]))
 ):
