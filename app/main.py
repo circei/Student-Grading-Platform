@@ -15,6 +15,7 @@ import os
 from typing import Dict, List, Optional
 import openpyxl
 from tempfile import NamedTemporaryFile
+from app.validators import GradeValidator
 
 
 import firebase_admin
@@ -249,8 +250,16 @@ def student_area(user: dict = Depends(require_roles(["student"]))):
 
 @app.post("/grades/", response_model=GradeResponse)
 def add_grade(grade: GradeCreate, db: Session = Depends(get_db)):
-    created_grade = create_grade(db, student_id=grade.student_id, subject=grade.subject, grade=grade.grade)
-    return GradeResponse.from_orm(created_grade)
+    try:
+        created_grade = create_grade(
+            db, 
+            student_id=grade.student_id, 
+            subject=grade.subject, 
+            grade=grade.grade
+        )
+        return GradeResponse.from_orm(created_grade)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/grades/{student_id}", response_model=List[GradeResponse])
 def list_grades(student_id: int, db: Session = Depends(get_db)):
@@ -260,10 +269,13 @@ def list_grades(student_id: int, db: Session = Depends(get_db)):
 
 @app.put("/grades/{grade_id}", response_model=GradeResponse)
 def modify_grade(grade_id: int, grade_update: GradeUpdate, db: Session = Depends(get_db)):
-    updated_grade = update_grade(db, grade_id, grade_update.grade)
-    if not updated_grade:
-        raise HTTPException(status_code=404, detail="Grade not found")
-    return GradeResponse.from_orm(updated_grade)
+    try:
+        updated_grade = update_grade(db, grade_id, grade_update.grade)
+        if not updated_grade:
+            raise HTTPException(status_code=404, detail="Grade not found")
+        return GradeResponse.from_orm(updated_grade)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @app.delete("/grades/{grade_id}", response_model=GradeResponse)
 def remove_grade(grade_id: int, db: Session = Depends(get_db)):
@@ -275,17 +287,22 @@ def remove_grade(grade_id: int, db: Session = Depends(get_db)):
 @app.post("/grades/upload", response_model=BulkUploadResponse)
 async def upload_grades(
     file: UploadFile = File(...),
+    min_grade: int = 0,  # Allow customizing grade range via query params
+    max_grade: int = 100,
     db: Session = Depends(get_db),
     _: dict = Depends(require_roles(["admin", "teacher"]))
 ):
     """
-    Upload grades from a CSV or Excel file.
+    Upload grades from a CSV or Excel file with validation.
     
     The file should have these columns:
     - student_id: The student ID (integer)
     - subject: Subject name (string)
-    - grade: Grade value (integer, 0-100)
+    - grade: Grade value (integer, min_grade-max_grade)
     """
+    # Create validator with specified range
+    validator = GradeValidator(min_grade=min_grade, max_grade=max_grade)
+    
     # Read file content
     content = await file.read()
     
@@ -318,8 +335,8 @@ async def upload_grades(
                 detail=f"File must contain these columns: {', '.join(required_columns)}"
             )
         
-        # Bulk create grades
-        successful_grades, errors = bulk_create_grades(db, grades_data)
+        # Bulk create grades with specified validator
+        successful_grades, errors = bulk_create_grades(db, grades_data, validator=validator)
         
         # Prepare response
         response = {
@@ -340,6 +357,8 @@ async def upload_grades(
 @app.get("/grades/upload/template")
 async def get_grade_upload_template(
     format: str = "csv",
+    min_grade: int = 0,
+    max_grade: int = 100,
     _: dict = Depends(require_roles(["admin", "teacher"]))
 ):
     """
@@ -347,12 +366,14 @@ async def get_grade_upload_template(
     
     Query parameters:
     - format: "csv" or "excel" (default: "csv")
+    - min_grade: Minimum allowed grade (default: 0)
+    - max_grade: Maximum allowed grade (default: 100)
     """
     # Sample data
     sample_data = [
-        {"student_id": "1", "subject": "Math", "grade": "95"},
-        {"student_id": "2", "subject": "Science", "grade": "87"},
-        {"student_id": "3", "subject": "History", "grade": "78"}
+        {"student_id": "1", "subject": f"Math (Range: {min_grade}-{max_grade})", "grade": str(min(95, max_grade))},
+        {"student_id": "2", "subject": "Science", "grade": str(min(87, max_grade))},
+        {"student_id": "3", "subject": "History", "grade": str(min(78, max_grade))}
     ]
     
     # If Excel format is requested
