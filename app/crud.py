@@ -1,38 +1,81 @@
 from sqlalchemy.orm import Session
 from app.database import Grade
+from app.validators import GradeValidator
+from typing import Tuple, List, Dict, Any, Optional
 
-def create_grade(db: Session, student_id: int, subject: str, grade: int):
-    new_grade = Grade(student_id=student_id, subject=subject, grade=grade)
+# Default validator with range 0-100
+default_validator = GradeValidator(min_grade=0, max_grade=100)
+
+def create_grade(
+    db: Session, 
+    student_id: int, 
+    subject: str, 
+    grade: int,
+    validator: GradeValidator = default_validator
+) -> Grade:
+    """Create a new grade after validation."""
+    # Validate the grade data
+    grade_data = {"student_id": student_id, "subject": subject, "grade": grade}
+    is_valid, error_message = validator.validate_grade_data(grade_data)
+    
+    if not is_valid:
+        raise ValueError(error_message)
+    
+    # Create the grade
+    new_grade = Grade(
+        student_id=int(student_id), 
+        subject=str(subject), 
+        grade=int(grade)
+    )
     db.add(new_grade)
     db.commit()
     db.refresh(new_grade)
     return new_grade
 
-def get_grades_by_student(db: Session, student_id: int):
-    return db.query(Grade).filter(Grade.student_id == student_id).all()
-
-def update_grade(db: Session, grade_id: int, new_grade: int):
+def update_grade(
+    db: Session, 
+    grade_id: int, 
+    new_grade: int,
+    validator: GradeValidator = default_validator
+) -> Optional[Grade]:
+    """Update a grade after validation."""
+    # Validate the grade value
+    is_valid, error_message = validator.validate_grade(new_grade)
+    if not is_valid:
+        raise ValueError(error_message)
+    
+    # Update the grade
     grade = db.query(Grade).filter(Grade.id == grade_id).first()
     if grade:
-        grade.grade = new_grade
+        grade.grade = int(new_grade)
         db.commit()
         db.refresh(grade)
     return grade
 
-def delete_grade(db: Session, grade_id: int):
+def get_grades_by_student(db: Session, student_id: int) -> List[Grade]:
+    """Get all grades for a student."""
+    return db.query(Grade).filter(Grade.student_id == student_id).all()
+
+def delete_grade(db: Session, grade_id: int) -> Optional[Grade]:
+    """Delete a grade by ID."""
     grade = db.query(Grade).filter(Grade.id == grade_id).first()
     if grade:
         db.delete(grade)
         db.commit()
     return grade
 
-def bulk_create_grades(db: Session, grades_data: list):
+def bulk_create_grades(
+    db: Session, 
+    grades_data: List[Dict[str, Any]],
+    validator: GradeValidator = default_validator
+) -> Tuple[List[Grade], List[str]]:
     """
-    Create multiple grades at once from a list of grade data.
+    Create multiple grades at once after validation.
     
     Args:
         db: Database session
         grades_data: List of dictionaries with student_id, subject, grade
+        validator: GradeValidator instance for validation
         
     Returns:
         tuple: (successful_grades, errors)
@@ -42,30 +85,17 @@ def bulk_create_grades(db: Session, grades_data: list):
     
     for idx, grade_data in enumerate(grades_data):
         try:
-            # Validate required fields
-            if not all(k in grade_data for k in ["student_id", "subject", "grade"]):
-                errors.append(f"Row {idx+1}: Missing required fields (student_id, subject, grade)")
-                continue
-                
-            # Validate data types
-            try:
-                student_id = int(grade_data["student_id"])
-                grade_value = int(grade_data["grade"])
-                subject = str(grade_data["subject"])
-            except (ValueError, TypeError):
-                errors.append(f"Row {idx+1}: Invalid data types (student_id and grade must be integers)")
-                continue
-                
-            # Validate grade range (assuming grades are between 0-100)
-            if not (0 <= grade_value <= 100):
-                errors.append(f"Row {idx+1}: Grade must be between 0 and 100")
+            # Validate the grade data
+            is_valid, error_message = validator.validate_grade_data(grade_data)
+            if not is_valid:
+                errors.append(f"Row {idx+1}: {error_message}")
                 continue
                 
             # Create grade
             new_grade = Grade(
-                student_id=student_id,
-                subject=subject,
-                grade=grade_value
+                student_id=int(grade_data["student_id"]),
+                subject=str(grade_data["subject"]),
+                grade=int(grade_data["grade"])
             )
             db.add(new_grade)
             successful_grades.append(new_grade)
