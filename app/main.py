@@ -1,6 +1,7 @@
-from fastapi import FastAPI, HTTPException, Depends, status, Security
+from fastapi import Body, FastAPI, HTTPException, Depends, Path, Query, status, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, validator, Field
+import re
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
@@ -88,23 +89,37 @@ class User(BaseModel):
         orm_mode = True  # Enables compatibility with SQLAlchemy models
 
 class UserCreate(BaseModel):
-    username: str
-    email: str
-    password: str
+    username: str = Field(..., min_length=3, max_length=50)
+    email: EmailStr  # Validates email format
+    password: str = Field(..., min_length=8)
+    
+    @validator('username')
+    def username_alphanumeric(cls, v):
+        if not re.match(r'^[a-zA-Z0-9_-]+$', v):
+            raise ValueError('Username must contain only letters, numbers, underscores, and hyphens')
+        return v
+        
+    @validator('password')
+    def password_strength(cls, v):
+        if not any(char.isdigit() for char in v):
+            raise ValueError('Password must contain at least one digit')
+        if not any(char.isalpha() for char in v):
+            raise ValueError('Password must contain at least one letter')
+        return v
 
 class Token(BaseModel):
     access_token: str
     token_type: str
 
 class GradeBase(BaseModel):
-    subject: str
-    grade: int
+    subject: str = Field(..., min_length=1, max_length=100)
+    grade: int = Field(..., ge=0, le=100)  # ge=greater or equal, le=less or equal
 
 class GradeCreate(GradeBase):
-    student_id: int
+    student_id: int = Field(..., gt=0)  # gt=greater than 0
 
 class GradeUpdate(BaseModel):
-    grade: int
+    grade: int = Field(..., ge=0, le=100)
 
 class GradeResponse(GradeBase):
     id: int
@@ -115,8 +130,18 @@ class GradeResponse(GradeBase):
         from_attributes = True
 
 class UserProfileUpdate(BaseModel):
-    email: Optional[str] = None
-    password: Optional[str] = None
+    email: Optional[EmailStr] = None
+    password: Optional[str] = Field(None, min_length=8)
+    
+    @validator('password')
+    def password_strength(cls, v):
+        if v is None:
+            return v
+        if not any(char.isdigit() for char in v):
+            raise ValueError('Password must contain at least one digit')
+        if not any(char.isalpha() for char in v):
+            raise ValueError('Password must contain at least one letter')
+        return v
 
 class BulkUploadResponse(BaseModel):
     total_processed: int
@@ -262,13 +287,17 @@ def add_grade(grade: GradeCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.get("/grades/{student_id}", response_model=List[GradeResponse])
-def list_grades(student_id: int, db: Session = Depends(get_db)):
+def list_grades(student_id: int = Path(..., gt=0, description="The student ID"), db: Session = Depends(get_db)):
     grades = get_grades_by_student(db, student_id)
     return [GradeResponse.from_orm(grade) for grade in grades]
 
 
 @app.put("/grades/{grade_id}", response_model=GradeResponse)
-def modify_grade(grade_id: int, grade_update: GradeUpdate, db: Session = Depends(get_db)):
+def modify_grade(
+    grade_id: int = Path(..., gt=0, description="The grade ID"), 
+    grade_update: GradeUpdate = Body(...),
+    db: Session = Depends(get_db)
+):
     try:
         updated_grade = update_grade(db, grade_id, grade_update.grade)
         if not updated_grade:
@@ -278,7 +307,7 @@ def modify_grade(grade_id: int, grade_update: GradeUpdate, db: Session = Depends
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.delete("/grades/{grade_id}", response_model=GradeResponse)
-def remove_grade(grade_id: int, db: Session = Depends(get_db)):
+def remove_grade(grade_id: int = Path(..., gt=0, description="The grade ID"), db: Session = Depends(get_db)):
     deleted_grade = delete_grade(db, grade_id)
     if not deleted_grade:
         raise HTTPException(status_code=404, detail="Grade not found")
@@ -287,19 +316,35 @@ def remove_grade(grade_id: int, db: Session = Depends(get_db)):
 @app.post("/grades/upload", response_model=BulkUploadResponse)
 async def upload_grades(
     file: UploadFile = File(...),
-    min_grade: int = 0,  # Allow customizing grade range via query params
-    max_grade: int = 100,
+    min_grade: int = Field(0, ge=0, le=100),
+    max_grade: int = Field(100, ge=0, le=100),
     db: Session = Depends(get_db),
     _: dict = Depends(require_roles(["admin", "teacher"]))
 ):
-    """
-    Upload grades from a CSV or Excel file with validation.
+    # Validate file size (10MB limit)
+    MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+    file_size = 0
+    content = bytearray()
     
-    The file should have these columns:
-    - student_id: The student ID (integer)
-    - subject: Subject name (string)
-    - grade: Grade value (integer, min_grade-max_grade)
-    """
+    # Read file in chunks to validate size
+    chunk = await file.read(1024)
+    while chunk:
+        file_size += len(chunk)
+        if file_size > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=400,
+                detail=f"File too large: maximum size is 10MB"
+            )
+        content.extend(chunk)
+        chunk = await file.read(1024)
+    
+    # Ensure min_grade <= max_grade
+    if min_grade > max_grade:
+        raise HTTPException(
+            status_code=400,
+            detail=f"min_grade ({min_grade}) cannot be greater than max_grade ({max_grade})"
+        )
+    
     # Create validator with specified range
     validator = GradeValidator(min_grade=min_grade, max_grade=max_grade)
     
@@ -326,7 +371,12 @@ async def upload_grades(
                 status_code=400, 
                 detail="Only CSV and Excel files are supported"
             )
-        
+        MAX_ROWS = 1000
+        if len(grades_data) > MAX_ROWS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Too many rows in file: maximum is {MAX_ROWS}, found {len(grades_data)}"
+            )
         # Validate required columns
         required_columns = ['student_id', 'subject', 'grade']
         if not grades_data or not all(col in grades_data[0] for col in required_columns):
@@ -356,11 +406,17 @@ async def upload_grades(
 
 @app.get("/grades/upload/template")
 async def get_grade_upload_template(
-    format: str = "csv",
-    min_grade: int = 0,
-    max_grade: int = 100,
+    format: str = Query("csv", pattern="^(csv|excel)$"),
+    min_grade: int = Query(0, ge=0, le=100),
+    max_grade: int = Query(100, ge=0, le=100),
     _: dict = Depends(require_roles(["admin", "teacher"]))
 ):
+    # Ensure min_grade <= max_grade
+    if min_grade > max_grade:
+        raise HTTPException(
+            status_code=400,
+            detail=f"min_grade ({min_grade}) cannot be greater than max_grade ({max_grade})"
+        )
     """
     Get a template file for bulk grade upload.
     
@@ -469,9 +525,9 @@ def update_profile(
 # Admin endpoint to get any user's profile
 @app.get("/users/{user_id}", response_model=User)
 def get_user_profile(
-    user_id: int, 
+    user_id: int = Path(..., gt=0, description="The user ID"), 
     db: Session = Depends(get_db),
-    _: dict = Depends(require_roles(["admin"]))  # Only admins can view any profile
+    _: dict = Depends(require_roles(["admin"]))
 ):
     """Get a user's profile by ID (admin only)."""
     user = db.query(DBUser).filter(DBUser.id == user_id).first()
@@ -482,10 +538,10 @@ def get_user_profile(
 # Admin endpoint to update any user's profile
 @app.put("/users/{user_id}", response_model=User)
 def update_user_profile(
-    user_id: int,
-    profile_update: UserProfileUpdate,
+    user_id: int = Path(..., gt=0, description="The user ID"),
+    profile_update: UserProfileUpdate = Body(...),
     db: Session = Depends(get_db),
-    _: dict = Depends(require_roles(["admin"]))  # Only admins can update any profile
+    _: dict = Depends(require_roles(["admin"]))
 ):
     """Update any user's profile (admin only)."""
     user = db.query(DBUser).filter(DBUser.id == user_id).first()
