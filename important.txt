@@ -1,0 +1,2 @@
+For Excel bulk grade upload, I had to install openpyxl. This is done using:
+pip install openpyxl

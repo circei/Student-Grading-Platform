@@ -5,13 +5,57 @@ from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from typing import List
-from app.crud import create_grade, get_grades_by_student, update_grade, delete_grade
+from app.crud import create_grade, get_grades_by_student, update_grade, delete_grade, bulk_create_grades
 from typing import Optional
+from fastapi import UploadFile, File
+from fastapi.responses import StreamingResponse
+import csv
+import io
+import os
+from typing import Dict, List, Optional
+import openpyxl
+from tempfile import NamedTemporaryFile
+
 
 import firebase_admin
 from firebase_admin import credentials, auth
 
 from app.database import init_db, SessionLocal, User as DBUser
+
+
+def is_excel_file(filename: str) -> bool:
+    """Check if the file is an Excel file based on extension."""
+    return filename.lower().endswith(('.xlsx', '.xls'))
+
+def parse_excel_file(content: bytes):
+    """Parse Excel file content and convert to list of dictionaries."""
+    # Create temp file to hold Excel data
+    with NamedTemporaryFile(suffix='.xlsx', delete=False) as temp:
+        temp_path = temp.name
+        temp.write(content)
+    
+    try:
+        # Load Excel workbook
+        workbook = openpyxl.load_workbook(temp_path, read_only=True)
+        sheet = workbook.active
+        
+        # Get header row
+        headers = [cell.value for cell in next(sheet.rows)]
+        
+        # Prepare data rows
+        data = []
+        for row in sheet.iter_rows(min_row=2):  # Skip header row
+            row_data = {}
+            for header, cell in zip(headers, row):
+                row_data[header] = str(cell.value) if cell.value is not None else ""
+            data.append(row_data)
+        
+        return data
+    finally:
+        # Clean up temp file
+        import os
+        if os.path.exists(temp_path):
+            os.unlink(temp_path)
 
 # ----------------------------
 # Firebase Admin Initialization
@@ -73,6 +117,12 @@ class UserProfileUpdate(BaseModel):
     email: Optional[str] = None
     password: Optional[str] = None
 
+class BulkUploadResponse(BaseModel):
+    total_processed: int
+    successful: int
+    failed: int
+    errors: Optional[List[str]] = None
+
 
 # ----------------------------
 # Database Dependency
@@ -99,7 +149,8 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def get_current_firebase_user(token: HTTPAuthorizationCredentials = Depends(firebase_scheme)) -> dict:
     """
     Verifies the Firebase ID token and returns its decoded payload.
-    """
+    """ 
+
     try:
         decoded_token = auth.verify_id_token(token.credentials)
         return decoded_token
@@ -220,6 +271,152 @@ def remove_grade(grade_id: int, db: Session = Depends(get_db)):
     if not deleted_grade:
         raise HTTPException(status_code=404, detail="Grade not found")
     return GradeResponse.from_orm(deleted_grade)
+
+@app.post("/grades/upload", response_model=BulkUploadResponse)
+async def upload_grades(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    _: dict = Depends(require_roles(["admin", "teacher"]))
+):
+    """
+    Upload grades from a CSV or Excel file.
+    
+    The file should have these columns:
+    - student_id: The student ID (integer)
+    - subject: Subject name (string)
+    - grade: Grade value (integer, 0-100)
+    """
+    # Read file content
+    content = await file.read()
+    
+    try:
+        # Check file type and parse accordingly
+        if is_excel_file(file.filename):
+            try:
+                grades_data = parse_excel_file(content)
+            except ImportError:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Excel support requires the openpyxl package. Install with: pip install openpyxl"
+                )
+        elif file.filename.endswith('.csv'):
+            # Parse as CSV
+            content_str = content.decode('utf-8')
+            csv_reader = csv.DictReader(io.StringIO(content_str))
+            grades_data = list(csv_reader)
+        else:
+            raise HTTPException(
+                status_code=400, 
+                detail="Only CSV and Excel files are supported"
+            )
+        
+        # Validate required columns
+        required_columns = ['student_id', 'subject', 'grade']
+        if not grades_data or not all(col in grades_data[0] for col in required_columns):
+            raise HTTPException(
+                status_code=400,
+                detail=f"File must contain these columns: {', '.join(required_columns)}"
+            )
+        
+        # Bulk create grades
+        successful_grades, errors = bulk_create_grades(db, grades_data)
+        
+        # Prepare response
+        response = {
+            "total_processed": len(grades_data),
+            "successful": len(successful_grades),
+            "failed": len(grades_data) - len(successful_grades),
+        }
+        
+        # Add errors if any
+        if errors:
+            response["errors"] = errors
+            
+        return response
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+
+@app.get("/grades/upload/template")
+async def get_grade_upload_template(
+    format: str = "csv",
+    _: dict = Depends(require_roles(["admin", "teacher"]))
+):
+    """
+    Get a template file for bulk grade upload.
+    
+    Query parameters:
+    - format: "csv" or "excel" (default: "csv")
+    """
+    # Sample data
+    sample_data = [
+        {"student_id": "1", "subject": "Math", "grade": "95"},
+        {"student_id": "2", "subject": "Science", "grade": "87"},
+        {"student_id": "3", "subject": "History", "grade": "78"}
+    ]
+    
+    # If Excel format is requested
+    if format.lower() == "excel":
+        try:
+            # Create Excel workbook and active sheet
+            workbook = openpyxl.Workbook()
+            sheet = workbook.active
+            
+            # Add headers
+            headers = ["student_id", "subject", "grade"]
+            for col_idx, header in enumerate(headers, 1):
+                sheet.cell(row=1, column=col_idx, value=header)
+            
+            # Add sample data
+            for row_idx, data_row in enumerate(sample_data, 2):
+                for col_idx, header in enumerate(headers, 1):
+                    sheet.cell(row=row_idx, column=col_idx, value=data_row[header])
+            
+            # Save to temporary file
+            with NamedTemporaryFile(delete=False, suffix='.xlsx') as temp:
+                temp_path = temp.name
+                workbook.save(temp_path)
+                
+            # Read the file and return it
+            with open(temp_path, "rb") as f:
+                excel_data = f.read()
+                
+            # Clean up the temporary file
+            import os
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+                
+            return StreamingResponse(
+                io.BytesIO(excel_data),
+                media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                headers={"Content-Disposition": "attachment; filename=grade_upload_template.xlsx"}
+            )
+        except ImportError:
+            raise HTTPException(
+                status_code=400,
+                detail="Excel template requires the openpyxl package. Install with: pip install openpyxl"
+            )
+    
+    # Default to CSV
+    output = io.StringIO()
+    writer = csv.writer(output)
+    
+    # Write header
+    writer.writerow(['student_id', 'subject', 'grade'])
+    
+    # Write sample data
+    for row in sample_data:
+        writer.writerow([row['student_id'], row['subject'], row['grade']])
+    
+    # Reset buffer position
+    output.seek(0)
+    
+    # Return CSV file
+    return StreamingResponse(
+        output, 
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=grade_upload_template.csv"}
+    )
 
 # ----------------------------
 # User Profile Endpoints
