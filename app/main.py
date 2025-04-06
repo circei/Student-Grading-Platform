@@ -16,7 +16,6 @@ from app.database import init_db, SessionLocal, User as DBUser
 # ----------------------------
 # Firebase Admin Initialization
 # ----------------------------
-# Ensure that the path below points to your serviceAccountKey.json file.
 cred = credentials.Certificate("app/cert/serviceAccountKey.json")
 firebase_admin.initialize_app(cred)
 
@@ -107,9 +106,9 @@ def get_current_firebase_user(token: HTTPAuthorizationCredentials = Depends(fire
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired Firebase token"
+            detail=f"Invalid Firebase token: {str(e)}"
         )
-
+    
 def require_roles(required_roles: List[str]):
     """
     Dependency generator that checks whether the Firebase token includes at least one
@@ -225,11 +224,6 @@ def remove_grade(grade_id: int, db: Session = Depends(get_db)):
 # ----------------------------
 # User Profile Endpoints
 # ----------------------------
-
-# View profile endpoint (already exists in your code)
-@app.get("/users/me", response_model=User)
-def read_users_me(current_user: DBUser = Depends(get_current_user)):
-    return current_user
 
 # Update profile endpoint
 @app.put("/users/me", response_model=User)
