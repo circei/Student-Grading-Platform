@@ -9,7 +9,7 @@ from typing import List
 from app.crud import create_grade, get_grades_by_student, update_grade, delete_grade, bulk_create_grades
 from typing import Optional
 from fastapi import UploadFile, File
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 import csv
 import io
 import os
@@ -38,21 +38,42 @@ def parse_excel_file(content: bytes):
     
     try:
         # Load Excel workbook
-        workbook = openpyxl.load_workbook(temp_path, read_only=True)
-        sheet = workbook.active
+        try:
+            workbook = openpyxl.load_workbook(temp_path, read_only=True)
+            sheet = workbook.active
+            
+            # Get header row
+            if not sheet.max_row or sheet.max_row < 2:
+                raise ValueError("Excel file is empty or missing data rows")
+                
+            headers = [cell.value for cell in next(sheet.rows)]
+            
+            # Check if all required headers are present
+            required_headers = ['student_id', 'subject', 'grade']
+            missing_headers = [h for h in required_headers if h not in headers]
+            
+            if missing_headers:
+                raise ValueError(f"Missing required columns: {', '.join(missing_headers)}")
+            
+            # Prepare data rows
+            data = []
+            for row in sheet.iter_rows(min_row=2):  # Skip header row
+                if all(cell.value is None for cell in row):
+                    continue  # Skip empty rows
+                    
+                row_data = {}
+                for header, cell in zip(headers, row):
+                    row_data[header] = str(cell.value) if cell.value is not None else ""
+                data.append(row_data)
+            
+            return data
+            
+        except openpyxl.utils.exceptions.InvalidFileException:
+            raise ValueError("The file is not a valid Excel file")
+            
+    except Exception as e:
+        raise ValueError(f"Excel parsing error: {str(e)}")
         
-        # Get header row
-        headers = [cell.value for cell in next(sheet.rows)]
-        
-        # Prepare data rows
-        data = []
-        for row in sheet.iter_rows(min_row=2):  # Skip header row
-            row_data = {}
-            for header, cell in zip(headers, row):
-                row_data[header] = str(cell.value) if cell.value is not None else ""
-            data.append(row_data)
-        
-        return data
     finally:
         # Clean up temp file
         import os
@@ -69,6 +90,25 @@ firebase_admin.initialize_app(cred)
 # FastAPI App and Database Setup
 # ----------------------------
 app = FastAPI()
+
+# After creating the app instance
+app = FastAPI()
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request, exc):
+    """Handle unexpected exceptions gracefully"""
+    # Don't expose internal error details in production
+    error_message = str(exc) if os.getenv("DEBUG") == "1" else "An unexpected error occurred"
+    
+    # Log the full error for debugging
+    import traceback
+    traceback.print_exc()
+    
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": error_message},
+    )
+
 init_db()  # Create tables if they don't exist
 
 # ----------------------------
@@ -175,15 +215,35 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def get_current_firebase_user(token: HTTPAuthorizationCredentials = Depends(firebase_scheme)) -> dict:
     """
     Verifies the Firebase ID token and returns its decoded payload.
-    """ 
-
+    """
+    if token is None or not token.credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication token is missing"
+        )
+        
     try:
         decoded_token = auth.verify_id_token(token.credentials)
         return decoded_token
+    except auth.ExpiredIdTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication token has expired. Please log in again."
+        )
+    except auth.InvalidIdTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication token. Please log in again."
+        )
+    except auth.RevokedIdTokenError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication token has been revoked. Please log in again."
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Invalid Firebase token: {str(e)}"
+            detail=f"Authentication error: {str(e)}"
         )
     
 def require_roles(required_roles: List[str]):
@@ -321,22 +381,20 @@ async def upload_grades(
     db: Session = Depends(get_db),
     _: dict = Depends(require_roles(["admin", "teacher"]))
 ):
-    # Validate file size (10MB limit)
-    MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
-    file_size = 0
-    content = bytearray()
+    """
+    Upload grades from a CSV or Excel file with comprehensive error handling.
     
-    # Read file in chunks to validate size
-    chunk = await file.read(1024)
-    while chunk:
-        file_size += len(chunk)
-        if file_size > MAX_FILE_SIZE:
-            raise HTTPException(
-                status_code=400,
-                detail=f"File too large: maximum size is 10MB"
-            )
-        content.extend(chunk)
-        chunk = await file.read(1024)
+    The file should have these columns:
+    - student_id: The student ID (integer)
+    - subject: Subject name (string)
+    - grade: Grade value (integer, min_grade-max_grade)
+    """
+    # Check if file is empty
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No file provided")
+    
+    # Create validator with specified range
+    validator = GradeValidator(min_grade=min_grade, max_grade=max_grade)
     
     # Ensure min_grade <= max_grade
     if min_grade > max_grade:
@@ -345,64 +403,115 @@ async def upload_grades(
             detail=f"min_grade ({min_grade}) cannot be greater than max_grade ({max_grade})"
         )
     
-    # Create validator with specified range
-    validator = GradeValidator(min_grade=min_grade, max_grade=max_grade)
-    
-    # Read file content
-    content = await file.read()
-    
+    # Validate file size and read content
     try:
-        # Check file type and parse accordingly
-        if is_excel_file(file.filename):
-            try:
-                grades_data = parse_excel_file(content)
-            except ImportError:
+        # Reset file position to the beginning just in case
+        await file.seek(0)
+        
+        # Check file size limit (10MB)
+        MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+        content = await file.read(MAX_FILE_SIZE + 1)  # Read slightly more to check if file exceeds limit
+        
+        if len(content) > MAX_FILE_SIZE:
+            raise HTTPException(
+                status_code=400,
+                detail=f"File too large: maximum size is 10MB"
+            )
+            
+        # Process based on file type
+        try:
+            # Check file type and parse accordingly
+            if is_excel_file(file.filename):
+                try:
+                    grades_data = parse_excel_file(content)
+                except ImportError:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Excel support requires the openpyxl package. Install with: pip install openpyxl"
+                    )
+                except ValueError as e:
+                    raise HTTPException(status_code=400, detail=str(e))
+            elif file.filename.endswith('.csv'):
+                # Parse as CSV
+                try:
+                    content_str = content.decode('utf-8')
+                except UnicodeDecodeError:
+                    raise HTTPException(
+                        status_code=400, 
+                        detail="File encoding error: Please ensure your CSV file uses UTF-8 encoding"
+                    )
+                    
+                csv_reader = csv.DictReader(io.StringIO(content_str))
+                grades_data = list(csv_reader)
+                
+                # Check if CSV parsing succeeded
+                if not csv_reader.fieldnames:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="Invalid CSV format: could not detect column headers"
+                    )
+            else:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="Only CSV and Excel files are supported"
+                )
+            
+            # Check for empty file
+            if not grades_data:
                 raise HTTPException(
                     status_code=400,
-                    detail="Excel support requires the openpyxl package. Install with: pip install openpyxl"
+                    detail="File contains no data rows"
                 )
-        elif file.filename.endswith('.csv'):
-            # Parse as CSV
-            content_str = content.decode('utf-8')
-            csv_reader = csv.DictReader(io.StringIO(content_str))
-            grades_data = list(csv_reader)
-        else:
-            raise HTTPException(
-                status_code=400, 
-                detail="Only CSV and Excel files are supported"
-            )
-        MAX_ROWS = 1000
-        if len(grades_data) > MAX_ROWS:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Too many rows in file: maximum is {MAX_ROWS}, found {len(grades_data)}"
-            )
-        # Validate required columns
-        required_columns = ['student_id', 'subject', 'grade']
-        if not grades_data or not all(col in grades_data[0] for col in required_columns):
-            raise HTTPException(
-                status_code=400,
-                detail=f"File must contain these columns: {', '.join(required_columns)}"
-            )
-        
-        # Bulk create grades with specified validator
-        successful_grades, errors = bulk_create_grades(db, grades_data, validator=validator)
-        
-        # Prepare response
-        response = {
-            "total_processed": len(grades_data),
-            "successful": len(successful_grades),
-            "failed": len(grades_data) - len(successful_grades),
-        }
-        
-        # Add errors if any
-        if errors:
-            response["errors"] = errors
+                
+            # Enforce maximum number of rows
+            MAX_ROWS = 1000
+            if len(grades_data) > MAX_ROWS:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Too many rows in file: maximum is {MAX_ROWS}, found {len(grades_data)}"
+                )
+                
+            # Validate required columns
+            required_columns = ['student_id', 'subject', 'grade']
+            if not all(col in grades_data[0] for col in required_columns):
+                missing = [col for col in required_columns if col not in grades_data[0]]
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Missing required columns: {', '.join(missing)}"
+                )
             
-        return response
-        
+            # Bulk create grades with specified validator
+            successful_grades, errors = bulk_create_grades(db, grades_data, validator=validator)
+            
+            # Prepare response
+            response = {
+                "total_processed": len(grades_data),
+                "successful": len(successful_grades),
+                "failed": len(grades_data) - len(successful_grades),
+            }
+            
+            # Add errors if any
+            if errors:
+                response["errors"] = errors
+                
+            return response
+                
+        except Exception as e:
+            # Handle other unexpected errors during file processing
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error processing file: {str(e)}"
+            )
+                
+    except HTTPException:
+        # Re-raise HTTP exceptions directly
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+        # Handle unexpected errors during file reading
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error reading file: {str(e)}"
+        )
 
 @app.get("/grades/upload/template")
 async def get_grade_upload_template(
