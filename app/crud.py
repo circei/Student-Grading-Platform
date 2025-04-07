@@ -69,44 +69,41 @@ def bulk_create_grades(
     grades_data: List[Dict[str, Any]],
     validator: GradeValidator = default_validator
 ) -> Tuple[List[Grade], List[str]]:
-    """
-    Create multiple grades at once after validation.
-    
-    Args:
-        db: Database session
-        grades_data: List of dictionaries with student_id, subject, grade
-        validator: GradeValidator instance for validation
-        
-    Returns:
-        tuple: (successful_grades, errors)
-    """
     successful_grades = []
     errors = []
     
-    for idx, grade_data in enumerate(grades_data):
-        try:
-            # Validate the grade data
-            is_valid, error_message = validator.validate_grade_data(grade_data)
-            if not is_valid:
-                errors.append(f"Row {idx+1}: {error_message}")
-                continue
+    # Start a transaction to allow rollback if needed
+    try:
+        for idx, grade_data in enumerate(grades_data):
+            try:
+                # Validate the grade data
+                is_valid, error_message = validator.validate_grade_data(grade_data)
+                if not is_valid:
+                    errors.append(f"Row {idx+1}: {error_message}")
+                    continue
+                    
+                # Create grade
+                new_grade = Grade(
+                    student_id=int(grade_data["student_id"]),
+                    subject=str(grade_data["subject"]),
+                    grade=int(grade_data["grade"])
+                )
+                db.add(new_grade)
+                successful_grades.append(new_grade)
                 
-            # Create grade
-            new_grade = Grade(
-                student_id=int(grade_data["student_id"]),
-                subject=str(grade_data["subject"]),
-                grade=int(grade_data["grade"])
-            )
-            db.add(new_grade)
-            successful_grades.append(new_grade)
-            
-        except Exception as e:
-            errors.append(f"Row {idx+1}: Unexpected error: {str(e)}")
-            
-    # Commit all successful grades
-    if successful_grades:
-        db.commit()
-        for grade in successful_grades:
-            db.refresh(grade)
-            
-    return successful_grades, errors
+            except Exception as e:
+                errors.append(f"Row {idx+1}: {str(e)}")
+        
+        # Commit all successful grades if there are any
+        if successful_grades:
+            db.commit()
+            for grade in successful_grades:
+                db.refresh(grade)
+                
+        return successful_grades, errors
+        
+    except Exception as e:
+        # If a database-level error occurs, roll back and report it
+        db.rollback()
+        errors.append(f"Database error: {str(e)}")
+        return [], errors
