@@ -1,0 +1,99 @@
+<div class="container">
+    <h1>Panou Admin</h1>
+    
+    <!-- Tabs pentru navigare -->
+    <div class="tabs">
+      <button 
+        class="tab-btn" 
+        [class.active]="activeTab === 'studenti'"
+        (click)="openTab('studenti')">
+        Studenți
+      </button>
+      <button 
+        class="tab-btn" 
+        [class.active]="activeTab === 'profesori'"
+        (click)="openTab('profesori')">
+        Profesori
+      </button>
+    </div>
+  
+    <!-- Formular studenți -->
+    @if (activeTab === 'studenti') {
+      <div class="tab-content">
+        <h2>Adaugă Student</h2>
+        <form (ngSubmit)="addStudent()">
+          <input 
+            type="text" 
+            placeholder="Nume Student" 
+            [(ngModel)]="newStudent.name" 
+            name="studentName" 
+            required>
+          <input 
+            type="email" 
+            placeholder="Email Student" 
+            [(ngModel)]="newStudent.email" 
+            name="studentEmail" 
+            required>
+          <input 
+            type="text" 
+            placeholder="Specializare" 
+            [(ngModel)]="newStudent.specialization" 
+            name="studentSpecialization" 
+            required>
+          <button type="submit">Adaugă</button>
+        </form>
+  
+        <div class="lista-studenti">
+          <h3>Listă Studenți ({{ students.length }})</h3>
+          <ul>
+            @for (student of students; track $index; let i = $index) {
+              <li>
+                {{ student.name }} ({{ student.email }}) - {{ student.specialization }}
+                <button (click)="deleteStudent(i)">Șterge</button>
+              </li>
+            }
+          </ul>
+        </div>
+      </div>
+    }
+  
+    <!-- Formular profesori -->
+    @if (activeTab === 'profesori') {
+      <div class="tab-content">
+        <h2>Adaugă Profesor</h2>
+        <form (ngSubmit)="addProfessor()">
+          <input 
+            type="text" 
+            placeholder="Nume Profesor" 
+            [(ngModel)]="newProfessor.name" 
+            name="professorName" 
+            required>
+          <input 
+            type="email" 
+            placeholder="Email Profesor" 
+            [(ngModel)]="newProfessor.email" 
+            name="professorEmail" 
+            required>
+          <input 
+            type="text" 
+            placeholder="Departament" 
+            [(ngModel)]="newProfessor.department" 
+            name="professorDepartment" 
+            required>
+          <button type="submit">Adaugă</button>
+        </form>
+  
+        <div class="lista-profesori">
+          <h3>Listă Profesori ({{ professors.length }})</h3>
+          <ul>
+            @for (professor of professors; track $index; let i = $index) {
+              <li>
+                {{ professor.name }} ({{ professor.email }}) - {{ professor.department }}
+                <button (click)="deleteProfessor(i)">Șterge</button>
+              </li>
+            }
+          </ul>
+        </div>
+      </div>
+    }
+  </div>
