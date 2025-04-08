@@ -1,5 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { Component } from '@angular/core';
+import { Class } from '../../database/models/class.model';
+import { Grade } from '../../database/models/grade.model';
 
 @Component({
   selector: 'app-teacher-dashboard',
@@ -8,13 +10,61 @@ import { Component } from '@angular/core';
   styleUrl: './teacher-dashboard.component.css'
 })
 export class TeacherDashboardComponent {
-  public teacherName: string | undefined = 'John Doe';
-  public classes: { id: number; name: string; studentCount: number }[] = [
-    { id: 1, name: 'Math 101', studentCount: 25 },
-    { id: 2, name: 'Physics 201', studentCount: 30 },
-    { id: 3, name: 'Chemistry 301', studentCount: 20 }
+  teacherName = 'Prof. Ionescu';
+  
+  // Date dummy pentru clase
+  classes: Class[] = [
+    { id: 1, name: 'Clasa a IX-a A', studentCount: 25 },
+    { id: 2, name: 'Clasa a X-a B', studentCount: 28 },
+    { id: 3, name: 'Clasa a XI-a C', studentCount: 22 }
   ];
-  public recentGrades: { id: number; studentName: string; value: number; course: string, date: Date }[] = [
-    { id: 1, studentName: 'Alice Johnson', value: 95, course: 'Math 101', date: new Date('2023-10-01') },
-  ]
+
+  // Date dummy pentru note
+  recentGrades: Grade[] = [
+    { 
+      id: 1, 
+      studentName: 'Maria Popescu', 
+      value: 9.5, 
+      course: 'Matematică', 
+      date: new Date('2024-03-15') 
+    },
+    { 
+      id: 2, 
+      studentName: 'Andrei Vasile', 
+      value: 8.0, 
+      course: 'Fizică', 
+      date: new Date('2024-03-14') 
+    },
+    { 
+      id: 3, 
+      studentName: 'Elena Dumitru', 
+      value: 10.0, 
+      course: 'Informatică', 
+      date: new Date('2024-03-13') 
+    }
+  ];
+
+  // Adăugare clasă nouă (dummy implementation)
+  addNewClass() {
+    const newClass: Class = {
+      id: this.classes.length + 1,
+      name: `Clasa nouă ${this.classes.length + 1}`,
+      studentCount: 0
+    };
+    this.classes.push(newClass);
+  }
+
+  // Gestionează clasă (dummy implementation)
+  manageClass(classId: number) {
+    console.log('Managing class with ID:', classId);
+    // Aici ar trebui să navighezi la o altă pagină/componentă
+  }
+
+  // Încărcare date inițiale (exemplu)
+  ngOnInit() {
+    // Simulează încărcarea datelor
+    setTimeout(() => {
+      this.teacherName = 'Prof. Ionescu';
+    }, 500);
+  }
 }
