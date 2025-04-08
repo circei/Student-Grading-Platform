@@ -1,0 +1,112 @@
+.management-container {
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  
+  .class-form .form-group {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1rem;
+    align-items: center;
+  }
+  
+  .class-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    margin-top: 2rem;
+  }
+  
+  .class-card {
+    padding: 1.5rem;
+  }
+  
+  .class-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+  
+  .student-list {
+    border-top: 2px solid var(--background-alt-color);
+    padding-top: 1rem;
+  }
+  
+  .student-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  
+  .add-student-form {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    width: 100%;
+    max-width: 800px;
+  }
+  
+  .student-table {
+    margin-top: 1rem;
+  }
+  
+  .grid-header, .grid-row {
+    display: grid;
+    grid-template-columns: 2fr 2fr 1fr auto;
+    gap: 1rem;
+    align-items: center;
+    padding: 0.5rem 0;
+  }
+  
+  .grid-header {
+    font-weight: bold;
+    border-bottom: 2px solid var(--background-alt-color);
+    margin-bottom: 0.5rem;
+  }
+  
+  .grid-row {
+    border-bottom: 1px solid var(--background-alt-color);
+    padding: 0.8rem 0;
+  }
+  
+  .btn-icon.danger {
+    background-color: var(--danger-color);
+    padding: 0.5rem;
+    border-radius: 50%;
+  }
+  
+  .btn-icon.danger:hover {
+    background-color: #c82333;
+  }
+  
+  @media (max-width: 768px) {
+    .add-student-form {
+      grid-template-columns: 1fr;
+    }
+    
+    .grid-header, .grid-row {
+      grid-template-columns: 1fr;
+    }
+    
+    .grid-header span {
+      display: none;
+    }
+    
+    .grid-row span::before {
+      content: attr(data-label);
+      font-weight: bold;
+      margin-right: 0.5rem;
+      color: var(--muted-text-color);
+    }
+    
+    .grid-row {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+  }
