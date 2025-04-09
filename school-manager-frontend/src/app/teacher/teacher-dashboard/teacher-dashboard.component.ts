@@ -2,10 +2,11 @@ import { DatePipe } from '@angular/common';
 import { Component } from '@angular/core';
 import { Class } from '../../database/models/class.model';
 import { Grade } from '../../database/models/grade.model';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-teacher-dashboard',
-  imports: [DatePipe],
+  imports: [DatePipe, RouterLink],
   templateUrl: './teacher-dashboard.component.html',
   styleUrl: './teacher-dashboard.component.css'
 })

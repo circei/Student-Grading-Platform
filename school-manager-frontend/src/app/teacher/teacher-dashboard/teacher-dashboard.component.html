@@ -15,9 +15,9 @@
       <section class="card classes-section">
         <div class="section-header">
           <h2>Clasele mele</h2>
-          <button class="btn-primary">
-            <span class="material-icons">add</span>
-            Crează clasă nouă
+          <button routerLink="/class-management" class="btn-icon">
+            <span class="material-icons">manage_accounts</span>
+            Gestionează
           </button>
         </div>
         
@@ -28,10 +28,6 @@
                 <h3>{{ class.name }}</h3>
                 <p>{{ class.studentCount }} studenți</p>
               </div>
-              <button class="btn-icon">
-                <span class="material-icons">manage_accounts</span>
-                Gestionează
-              </button>
             </div>
           }
         </div>
@@ -41,10 +37,9 @@
         <section class="card recent-grades">
             <div class="section-header">
             <h2>Note recent adăugate</h2>
-            <a href="#" class="link-button">
-                Vezi toate notele
-                <span class="material-icons">arrow_forward</span>
-            </a>
+            <button routerLink="/grade-management" class="btn-primary">
+              Vezi toate notele
+            </button>
             </div>
         
             <div class="grades-container">

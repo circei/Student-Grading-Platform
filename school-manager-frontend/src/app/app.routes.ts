@@ -7,7 +7,7 @@ import { ClassManagementComponent } from './teacher/class-management/class-manag
 import { GradeManagementComponent } from './teacher/grade-management/grade-management.component';
 
 export const routes: Routes = [
-  { path: '', redirectTo: 'grade-management', pathMatch: 'full' },
+  { path: '', redirectTo: 'teacher-dashborad', pathMatch: 'full' },
   { path: 'auth', component: AuthComponent },
   { path: 'forgot-password', component: ForgotPasswordComponent },
   { path: 'admin', component: AdminComponent },
