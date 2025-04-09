@@ -1,1 +1,96 @@
-<p>class-management works!</p>
+<div class="management-container">
+    <!-- Formular adăugare clasă -->
+    <div class="card class-form">
+      <h2>Gestionează Clase</h2>
+      <div class="form-group">
+        <input 
+          type="text" 
+          [(ngModel)]="newClassName" 
+          placeholder="Nume clasă nouă"
+          name="className"
+          class="full-width"
+        >
+        <button 
+          class="btn-primary" 
+          (click)="addClass()"
+          [disabled]="!newClassName"
+        >
+          <span class="material-icons">add</span>
+          Adaugă Clasă
+        </button>
+      </div>
+    </div>
+  
+    <!-- Listă clase -->
+    <div class="class-list">
+      @for (class of classes; track class.id) {
+        <div class="card class-card">
+          <div class="class-header">
+            <h3>{{ class.name }}</h3>
+            <button 
+              class="btn-danger" 
+              (click)="deleteClass(class.id)"
+            >
+              <span class="material-icons">delete</span>
+            </button>
+          </div>
+  
+          <!-- Listă studenți -->
+          <div class="student-list">
+            <div class="student-header">
+              <h4>Studenți înscriși ({{ class.students.length }})</h4>
+              
+              <!-- Formular adăugare student -->
+              <div class="add-student-form">
+                <input
+                  type="text"
+                  [(ngModel)]="newStudent.name"
+                  placeholder="Nume student"
+                  name="studentName"
+                >
+                <input
+                  type="email"
+                  [(ngModel)]="newStudent.email"
+                  placeholder="Email student"
+                  name="studentEmail"
+                >
+                <button
+                  class="btn-secondary"
+                  (click)="addStudent(class.id)"
+                  [disabled]="!newStudent.name || !newStudent.email"
+                >
+                  Adaugă Student
+                </button>
+              </div>
+            </div>
+  
+            <!-- Tabel studenți -->
+            <div class="student-table">
+              <div class="table-header grid-header">
+                <span>Nume</span>
+                <span>Email</span>
+                <span>Data Înscrierii</span>
+                <span>Acțiuni</span>
+              </div>
+  
+              @for (student of class.students; track student.id) {
+                <div class="table-row grid-row">
+                  <span>{{ student.name }}</span>
+                  <span>{{ student.email }}</span>
+                  <span>{{ student.enrollmentDate | date:'dd.MM.yyyy' }}</span>
+                  <span>
+                    <button 
+                      class="btn-icon danger"
+                      (click)="removeStudent(class.id, student.id)"
+                    >
+                      <span class="material-icons">person_remove</span>
+                    </button>
+                  </span>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+  </div>

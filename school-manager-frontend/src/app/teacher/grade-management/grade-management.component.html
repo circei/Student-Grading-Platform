@@ -1,1 +1,66 @@
-<p>grade-management works!</p>
+<!-- grade-management.component.html -->
+<div class="management-container">
+  <div class="card grade-form">
+    <h2>Adăugare Notă Nouă</h2>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Student</label>
+        <select [(ngModel)]="newGrade.studentName" required>
+          <option value="" disabled>Selectează student</option>
+          @for (student of students; track student.email) {
+            <option [value]="student.name">{{ student.name }} ({{ student.specialization }})</option>
+          }
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Curs</label>
+        <select [(ngModel)]="newGrade.course" required>
+          @for (course of courses; track course) {
+            <option>{{ course }}</option>
+          }
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Notă (1-10)</label>
+        <input type="number" 
+               [(ngModel)]="newGrade.value"
+               min="1"
+               max="10"
+               step="0.5"
+               required>
+      </div>
+    </div>
+
+    <button class="btn-primary" 
+            (click)="addGrade()"
+            [disabled]="!isValidGrade()">
+      Adaugă Nota
+    </button>
+  </div>
+
+  <div class="card grades-list">
+    <h2>Lista Note ({{ grades.length }})</h2>
+    
+    <div class="table-header">
+      <span>Student</span>
+      <span>Curs</span>
+      <span>Notă</span>
+      <span>Data</span>
+      <span>Acțiuni</span>
+    </div>
+
+    @for (grade of grades; track grade.id) {
+      <div class="table-row">
+        <span>{{ grade.studentName }}</span>
+        <span>{{ grade.course }}</span>
+        <span class="grade-value">{{ grade.value }}</span>
+        <span>{{ grade.date | date:'dd.MM.yyyy' }}</span>
+        <button class="btn-danger" (click)="deleteGrade(grade.id)">
+          Șterge
+        </button>
+      </div>
+    }
+  </div>
+</div>
