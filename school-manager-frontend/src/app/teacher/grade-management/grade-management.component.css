@@ -1,0 +1,75 @@
+/* grade-management.component.css */
+.management-container {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.grades-list {
+  padding: 1.5rem;
+}
+
+.table-header {
+  display: grid;
+  grid-template-columns: 2fr 2fr 1fr 1fr auto;
+  gap: 1rem;
+  padding: 1rem;
+  font-weight: bold;
+  background-color: var(--primary-color);
+  color: white;
+  border-radius: var(--border-radius);
+}
+
+.table-row {
+  display: grid;
+  grid-template-columns: 2fr 2fr 1fr 1fr auto;
+  gap: 1rem;
+  padding: 1rem;
+  align-items: center;
+  border-bottom: 1px solid var(--background-alt-color);
+}
+
+.grade-value {
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+@media (max-width: 768px) {
+  .table-header,
+  .table-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .table-header {
+    display: none;
+  }
+  
+  .table-row {
+    padding: 1rem;
+    border: 1px solid var(--background-alt-color);
+    border-radius: var(--border-radius);
+    margin-bottom: 1rem;
+    
+    > * {
+      display: flex;
+      justify-content: space-between;
+      
+      &::before {
+        content: attr(data-label);
+        font-weight: bold;
+        margin-right: 1rem;
+        color: var(--muted-text-color);
+      }
+    }
+  }
+}
