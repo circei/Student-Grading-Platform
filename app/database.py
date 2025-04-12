@@ -1,3 +1,4 @@
+from datetime import datetime
 from sqlalchemy import create_engine, Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -24,6 +25,32 @@ class Grade(Base):
     student_id = Column(Integer, nullable=False)  # Foreign key to User.id
     subject = Column(String, nullable=False)
     grade = Column(Integer, nullable=False)
+
+class GradeHistory(Base):
+    __tablename__ = "grade_history"
+    id = Column(Integer, primary_key=True, index=True)
+    grade_id = Column(Integer, nullable=False)  # ID of the grade being modified
+    student_id = Column(Integer, nullable=False)  # Student ID for easy querying
+    subject = Column(String, nullable=False)  # Subject for readability in logs
+    old_value = Column(Integer, nullable=True)  # Null for new grades
+    new_value = Column(Integer, nullable=True)  # Null for deleted grades
+    action = Column(String, nullable=False)  # "create", "update", "delete"
+    timestamp = Column(String, nullable=False)  # ISO format timestamp
+    changed_by = Column(String, nullable=True)  # User who made the change
+    
+    @classmethod
+    def create_log(cls, grade, old_value, new_value, action, changed_by=None):
+        """Helper method to create a history log entry"""
+        return cls(
+            grade_id=grade.id,
+            student_id=grade.student_id,
+            subject=grade.subject,
+            old_value=old_value,
+            new_value=new_value,
+            action=action,
+            timestamp=datetime.now().isoformat(),
+            changed_by=changed_by
+        )
 
 
 def init_db():
