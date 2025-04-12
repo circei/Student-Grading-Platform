@@ -22,7 +22,7 @@ from app.validators import GradeValidator
 import firebase_admin
 from firebase_admin import credentials, auth
 
-from app.database import init_db, SessionLocal, User as DBUser
+from app.database import GradeHistory, init_db, SessionLocal, User as DBUser
 
 from app.crud import get_grade_history, get_student_grade_history
 
@@ -205,6 +205,13 @@ class GradeHistoryResponse(BaseModel):
     class Config:
         orm_mode = True
         from_attributes = True
+
+class PaginatedResponse(BaseModel):
+    items: List[GradeHistoryResponse]
+    total: int
+    page: int
+    pages: int
+    limit: int
 
 # ----------------------------
 # Database Dependency
@@ -681,19 +688,46 @@ def get_history_for_student(
     history = get_student_grade_history(db, student_id, subject, start_date, end_date)
     return [GradeHistoryResponse.from_orm(entry) for entry in history]
 
-@app.get("/admin/grades/history", response_model=List[GradeHistoryResponse])
-def get_all_grade_history(
-    start_date: Optional[str] = Query(None, description="Filter by start date (ISO format)"),
-    end_date: Optional[str] = Query(None, description="Filter by end date (ISO format)"),
-    action: Optional[str] = Query(None, description="Filter by action (create, update, delete)"),
-    limit: int = Query(100, ge=1, le=1000),
-    offset: int = Query(0, ge=0),
+@app.get("/admin/grades/history", response_model=PaginatedResponse)
+def get_all_grade_history_endpoint(  # ← Renamed function to avoid conflict
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    action: Optional[str] = Query(None),
+    limit: int = Query(25, ge=1, le=100),
+    page: int = Query(1, ge=1),  # Use page instead of offset
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(["admin"]))
 ):
     """Admin endpoint to view all grade history/audit logs with filtering."""
-    history = get_all_grade_history(db, start_date, end_date, action, limit, offset)
-    return [GradeHistoryResponse.from_orm(entry) for entry in history]
+    # Calculate offset from page
+    offset = (page - 1) * limit
+    
+    # Get count for total
+    query = db.query(GradeHistory)
+    if start_date:
+        query = query.filter(GradeHistory.timestamp >= start_date)
+    if end_date:
+        query = query.filter(GradeHistory.timestamp <= end_date)
+    if action:
+        query = query.filter(GradeHistory.action == action)
+    
+    total = query.count() or 0  # Ensure total is at least 0, not None
+    
+    # Get paginated results - use imported function from crud.py
+    from app.crud import get_all_grade_history as crud_get_all_grade_history  # Import with alias
+    history = crud_get_all_grade_history(db, start_date, end_date, action, limit, offset)
+    history_responses = [GradeHistoryResponse.from_orm(entry) for entry in history]
+    
+    # Calculate total pages (safely)
+    total_pages = (total + limit - 1) // limit if total > 0 else 1
+    
+    return {
+        "items": history_responses,
+        "total": total,
+        "page": page,
+        "pages": total_pages,
+        "limit": limit
+    }
 
 # ----------------------------
 # User Profile Endpoints
