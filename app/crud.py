@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.database import Grade
+from app.database import Course, Grade, StudentCourse
 from app.validators import GradeValidator
 from typing import Tuple, List, Dict, Any, Optional
 from datetime import datetime
@@ -233,3 +233,88 @@ def get_all_grade_history(
         
     # Apply pagination and sorting
     return query.order_by(GradeHistory.timestamp.desc()).offset(offset).limit(limit).all()
+
+def create_course(
+    db: Session, 
+    name: str, 
+    description: str = None,
+    teacher_id: Optional[int] = None
+) -> Course:
+    """Create a new course"""
+    new_course = Course(
+        name=name, 
+        description=description,
+        teacher_id=teacher_id
+    )
+    db.add(new_course)
+    db.commit()
+    db.refresh(new_course)
+    return new_course
+
+def get_course(db: Session, course_id: int) -> Optional[Course]:
+    """Get a course by ID"""
+    return db.query(Course).filter(Course.id == course_id).first()
+
+def get_courses(db: Session, skip: int = 0, limit: int = 100) -> List[Course]:
+    """Get all courses with pagination"""
+    return db.query(Course).offset(skip).limit(limit).all()
+
+def add_student_to_course(
+    db: Session, 
+    student_id: int, 
+    course_id: int,
+    added_by: str = None
+) -> StudentCourse:
+    """Add a student to a course if not already enrolled"""
+    # Check if student exists (assuming student_id is a valid user ID)
+    # Check if course exists
+    course = get_course(db, course_id)
+    if not course:
+        raise ValueError(f"Course with ID {course_id} does not exist")
+    
+    # Check if student already in course
+    existing = db.query(StudentCourse).filter(
+        StudentCourse.student_id == student_id, 
+        StudentCourse.course_id == course_id
+    ).first()
+    
+    if existing:
+        raise ValueError(f"Student {student_id} is already enrolled in course {course_id}")
+    
+    # Add enrollment
+    enrollment = StudentCourse(
+        student_id=student_id, 
+        course_id=course_id,
+        added_by=added_by
+    )
+    db.add(enrollment)
+    db.commit()
+    db.refresh(enrollment)
+    return enrollment
+
+def remove_student_from_course(db: Session, student_id: int, course_id: int) -> bool:
+    """Remove a student from a course"""
+    enrollment = db.query(StudentCourse).filter(
+        StudentCourse.student_id == student_id, 
+        StudentCourse.course_id == course_id
+    ).first()
+    
+    if not enrollment:
+        raise ValueError(f"Student {student_id} is not enrolled in course {course_id}")
+    
+    db.delete(enrollment)
+    db.commit()
+    return True
+
+def get_students_in_course(db: Session, course_id: int) -> List[int]:
+    """Get all student IDs enrolled in a course"""
+    enrollments = db.query(StudentCourse).filter(StudentCourse.course_id == course_id).all()
+    return [enrollment.student_id for enrollment in enrollments]
+
+def get_courses_for_student(db: Session, student_id: int) -> List[Course]:
+    """Get all courses a student is enrolled in"""
+    enrollments = db.query(StudentCourse).filter(StudentCourse.student_id == student_id).all()
+    course_ids = [enrollment.course_id for enrollment in enrollments]
+    if not course_ids:
+        return []  # Return empty list if student has no courses
+    return db.query(Course).filter(Course.id.in_(course_ids)).all()
