@@ -25,7 +25,12 @@ from firebase_admin import credentials, auth
 from app.database import GradeHistory, init_db, SessionLocal, User as DBUser
 
 from app.crud import get_grade_history, get_student_grade_history
-
+from app.crud import (
+    create_course, get_course, get_courses,
+    add_student_to_course, remove_student_from_course,
+    get_students_in_course, get_courses_for_student
+)
+from app.database import Course, StudentCourse
 
 def is_excel_file(filename: str) -> bool:
     """Check if the file is an Excel file based on extension."""
@@ -212,6 +217,37 @@ class PaginatedResponse(BaseModel):
     page: int
     pages: int
     limit: int
+
+class CourseBase(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = None
+
+class CourseCreate(CourseBase):
+    teacher_id: Optional[int] = None
+
+class CourseResponse(CourseBase):
+    id: int
+    teacher_id: Optional[int]
+    created_at: str
+    
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
+class StudentCourseResponse(BaseModel):
+    id: int
+    student_id: int
+    course_id: int
+    joined_at: str
+    added_by: Optional[str]
+    
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
+class EnrollmentResponse(BaseModel):
+    message: str
+    enrollment: Optional[StudentCourseResponse] = None
 
 # ----------------------------
 # Database Dependency
@@ -796,6 +832,147 @@ def update_user_profile(
     db.commit()
     db.refresh(user)
     return user
+
+# ----------------------------
+# Course Management Endpoints
+# ----------------------------
+
+@app.post("/courses/", response_model=CourseResponse)
+def create_new_course(
+    course: CourseCreate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(["admin", "teacher"]))
+):
+    """Create a new course (admin and teachers only)"""
+    # If a teacher is creating the course, automatically assign themselves
+    teacher_id = None
+    if "teacher" in current_user.get("roles", []) and "admin" not in current_user.get("roles", []):
+        # In a real app, you'd get the teacher's database ID from their Firebase ID
+        # For now, we use a placeholder approach
+        teacher_id = course.teacher_id  # This would be retrieved from the user record
+    
+    return create_course(
+        db, 
+        name=course.name, 
+        description=course.description,
+        teacher_id=teacher_id or course.teacher_id
+    )
+
+@app.get("/courses/", response_model=List[CourseResponse])
+def list_courses(
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(["admin", "teacher", "student"]))
+):
+    """List all available courses"""
+    return get_courses(db, skip=skip, limit=limit)
+
+@app.get("/courses/{course_id}", response_model=CourseResponse)
+def get_course_by_id(
+    course_id: int = Path(..., gt=0),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(["admin", "teacher", "student"]))
+):
+    """Get a specific course by ID"""
+    course = get_course(db, course_id)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    return course
+
+# ----------------------------
+# Enrollment Management
+# ----------------------------
+
+@app.post("/courses/{course_id}/students/{student_id}", response_model=EnrollmentResponse)
+def add_student_endpoint(
+    course_id: int = Path(..., gt=0),
+    student_id: int = Path(..., gt=0),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(["admin", "teacher"]))
+):
+    """Add a student to a course (admin and teachers only)"""
+    try:
+        # Get user info for audit
+        user_identifier = current_user.get("email", current_user.get("uid", "unknown"))
+        
+        enrollment = add_student_to_course(
+            db, 
+            student_id=student_id, 
+            course_id=course_id,
+            added_by=user_identifier
+        )
+        return {
+            "message": f"Student {student_id} added to course {course_id}",
+            "enrollment": enrollment
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.delete("/courses/{course_id}/students/{student_id}", response_model=dict)
+def remove_student_endpoint(
+    course_id: int = Path(..., gt=0),
+    student_id: int = Path(..., gt=0),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(["admin", "teacher"]))
+):
+    """Remove a student from a course (admin and teachers only)"""
+    try:
+        success = remove_student_from_course(db, student_id=student_id, course_id=course_id)
+        if success:
+            return {"message": f"Student {student_id} removed from course {course_id}"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.get("/courses/{course_id}/students", response_model=List[int])
+def list_students_in_course(
+    course_id: int = Path(..., gt=0),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(["admin", "teacher"]))
+):
+    """Get all student IDs enrolled in a course (admin and teachers only)"""
+    return get_students_in_course(db, course_id)
+
+@app.get("/students/{student_id}/courses", response_model=List[CourseResponse])
+def list_student_courses(
+    student_id: int = Path(..., gt=0),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(["admin", "teacher", "student"]))
+):
+    """Get all courses for a student"""
+    # If student is requesting, only show their own courses
+    if "student" in current_user.get("roles", []) and not any(role in ["admin", "teacher"] for role in current_user.get("roles", [])):
+        if str(current_user.get("uid")) != str(student_id):
+            raise HTTPException(status_code=403, detail="You can only view your own courses")
+        
+    return get_courses_for_student(db, student_id)
+
+# Batch enrollment endpoint - useful for adding multiple students at once
+@app.post("/courses/{course_id}/students", response_model=dict)
+def batch_add_students(
+    course_id: int = Path(..., gt=0),
+    student_ids: List[int] = Body(..., embed=True),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(["admin", "teacher"]))
+):
+    """Add multiple students to a course at once"""
+    user_identifier = current_user.get("email", current_user.get("uid", "unknown"))
+    
+    successful = []
+    failed = []
+    
+    for student_id in student_ids:
+        try:
+            add_student_to_course(db, student_id, course_id, added_by=user_identifier)
+            successful.append(student_id)
+        except ValueError as e:
+            failed.append({"student_id": student_id, "reason": str(e)})
+    
+    return {
+        "message": f"Added {len(successful)} students to course {course_id}",
+        "successful": successful,
+        "failed": failed
+    }
 
 # ----------------------------
 # HTTPS Entry Point

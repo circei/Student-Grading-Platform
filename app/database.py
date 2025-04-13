@@ -52,6 +52,22 @@ class GradeHistory(Base):
             changed_by=changed_by
         )
 
+class Course(Base):
+    __tablename__ = "courses"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    teacher_id = Column(Integer, nullable=True)  # Optional teacher assignment
+    created_at = Column(String, default=datetime.now().isoformat())
+
+class StudentCourse(Base):
+    __tablename__ = "student_courses"
+    id = Column(Integer, primary_key=True, index=True)
+    student_id = Column(Integer, nullable=False)  
+    course_id = Column(Integer, nullable=False)
+    joined_at = Column(String, default=datetime.now().isoformat())
+    # Track who added the student for audit purposes
+    added_by = Column(String, nullable=True)
 
 def init_db():
     Base.metadata.create_all(bind=engine)
