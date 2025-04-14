@@ -1,0 +1,84 @@
+.grade-table-container {
+    overflow-x: auto; /* Permite scroll orizontal dacă tabelul e prea lat */
+    margin: 1em 0;
+    font-family: sans-serif;
+  }
+  
+  .styled-table {
+    width: 100%;
+    border-collapse: collapse; /* Elimină spațiile duble dintre celule */
+    font-size: 0.9em;
+    min-width: 400px; /* Lățime minimă */
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+    border-radius: 8px;
+    overflow: hidden; /* Necesare pentru border-radius pe tabel */
+  }
+  
+  .styled-table thead tr {
+    background-color: #007bff; /* Fundal header */
+    color: #ffffff; /* Text header */
+    text-align: left;
+  }
+  
+  .styled-table th,
+  .styled-table td {
+    padding: 12px 15px; /* Spațiere interioară celule */
+    border-bottom: 1px solid #dddddd; /* Linie subțire între rânduri */
+  }
+  
+  .styled-table tbody tr {
+    background-color: #ffffff;
+    transition: background-color 0.2s ease; /* Efect hover */
+  }
+  
+  .styled-table tbody tr:hover {
+    background-color: #f1f1f1; /* Culoare fundal la hover */
+  }
+  
+  .styled-table tbody tr:last-of-type {
+    border-bottom: 2px solid #007bff; /* Linie mai groasă la final */
+  }
+  
+  /* Stiluri pentru header sortabil */
+  .styled-table th.sortable {
+    cursor: pointer;
+    user-select: none; /* Previne selectarea textului la dublu click */
+    position: relative; /* Necesar pentru poziționarea iconiței */
+  }
+  
+  .styled-table th.sortable:hover {
+      background-color: #0056b3; /* Culoare ușor diferită la hover pe header */
+  }
+  
+  .sort-icon {
+    font-size: 1.1em;
+    vertical-align: middle;
+    margin-left: 4px;
+    opacity: 0.7; /* Iconiță ușor transparentă */
+  }
+  
+  th:hover .sort-icon {
+      opacity: 1; /* Iconiță complet vizibilă la hover pe header */
+  }
+  
+  /* Aliniere pentru coloane numerice */
+  .numeric-column {
+    text-align: right;
+  }
+  
+  .grade-value {
+      font-weight: bold;
+      font-size: 1.05em;
+  }
+  
+  .no-data-message {
+    text-align: center;
+    color: #777;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 6px;
+    margin-top: 1em;
+  }
+  
+  /* Import Material Icons (asigură-te că e importat global sau aici) */
+  @import url('https://fonts.googleapis.com/icon?family=Material+Icons');

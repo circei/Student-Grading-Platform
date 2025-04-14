@@ -1,72 +1,47 @@
-<!-- teacher-dashboard.component.html -->
 <div class="dashboard-container">
-    <!-- Header -->
-    <header class="dashboard-header">
-      <h1>Bun venit, {{ teacherName }}!</h1>
-      <div class="notification-icon">
-        <span class="material-icons">notifications</span>
-        <span class="badge">3</span>
+  <header class="dashboard-header">
+    <h1>Bun venit, {{ teacherName }}!</h1>
+  </header>
+
+  <div class="dashboard-grid">
+    <section class="card classes-section">
+      <div class="section-header">
+        <h2>Clasele mele</h2>
+        <button routerLink="/class-management" class="btn-icon">
+          <span class="material-icons">manage_accounts</span>
+          Gestionează
+        </button>
       </div>
-    </header>
-  
-    <!-- Main Content -->
-    <div class="dashboard-grid">
-      <!-- Clasele mele Section -->
-      <section class="card classes-section">
+
+      <div class="class-list">
+        @for (classItem of classes; track classItem.id) { <div class="class-item">
+            <div class="class-info">
+              <h3>{{ classItem.name }}</h3>
+              <p>{{ classItem.studentCount }} studenți</p>
+            </div>
+            <button (click)="manageClass(classItem.id)" class="btn-secondary btn-small">Detalii</button>
+          </div>
+        }
+        @if(classes.length === 0) {
+          <p class="no-data-message">Nu aveți clase asignate.</p>
+        }
+      </div>
+    </section>
+
+    <section class="card recent-grades">
         <div class="section-header">
-          <h2>Clasele mele</h2>
-          <button routerLink="/class-management" class="btn-icon">
-            <span class="material-icons">manage_accounts</span>
-            Gestionează
+          <h2>Note recent adăugate</h2>
+          <button routerLink="/grade-management" class="btn-primary">
+            Adaugă / Vezi toate
           </button>
         </div>
-        
-        <div class="class-list">
-          @for (class of classes; track class.id) {
-            <div class="class-item">
-              <div class="class-info">
-                <h3>{{ class.name }}</h3>
-                <p>{{ class.studentCount }} studenți</p>
-              </div>
-            </div>
-          }
-        </div>
-      </section>
-  
-        <!-- Note recente Section -->
-        <section class="card recent-grades">
-            <div class="section-header">
-            <h2>Note recent adăugate</h2>
-            <button routerLink="/grade-management" class="btn-primary">
-              Vezi toate notele
-            </button>
-            </div>
-        
-            <div class="grades-container">
-            <!-- Header -->
-            <div class="grades-header grid-layout">
-                <span class="header-item">Student</span>
-                <span class="header-item">Notă</span>
-                <span class="header-item">Curs</span>
-                <span class="header-item">Data</span>
-            </div>
-        
-            <!-- Rows -->
-            <div class="grades-list">
-                @for (grade of recentGrades; track grade.id) {
-                <div class="grade-item grid-layout">
-                <span class="student">
-                    {{ grade.studentName }}
-                </span>
-                <span class="grade">
-                    <span class="grade-pill">{{ grade.value }}</span>
-                </span>
-                <span class="course">{{ grade.course }}</span>
-                <span class="date">{{ grade.date | date:'dd.MM.yyyy' }}</span>
-                </div>
-                }
-            </div>
-            </div>
-        </section>
-    </div>
+
+        <app-grade-table
+          [grades]="recentGrades"
+          [showStudentNameColumn]="true"
+          noGradesMessage="Nu există note recente de afișat.">
+        </app-grade-table>
+
+    </section>
   </div>
+</div>
