@@ -7,9 +7,10 @@ import { ClassManagementComponent } from './teacher/class-management/class-manag
 import { GradeManagementComponent } from './teacher/grade-management/grade-management.component';
 import { StudentDashboardComponent } from './student/student-dashboard/student-dashboard.component';
 import { GradeViewComponent } from './student/grade-view/grade-view.component';
+import { ProgressViewComponent } from './student/progress-view/progress-view.component';
 
 export const routes: Routes = [
-  { path: '', redirectTo: 'grade-view', pathMatch: 'full' },
+  { path: '', redirectTo: 'progress-view', pathMatch: 'full' },
   { path: 'auth', component: AuthComponent },
   { path: 'forgot-password', component: ForgotPasswordComponent },
   { path: 'admin', component: AdminComponent },
@@ -18,4 +19,5 @@ export const routes: Routes = [
   { path: 'grade-management', component: GradeManagementComponent },
   {path: 'student-dashboard', component: StudentDashboardComponent}, 
   { path: 'grade-view', component: GradeViewComponent }, 
+  {path: 'progress-view', component: ProgressViewComponent}, 
 ];

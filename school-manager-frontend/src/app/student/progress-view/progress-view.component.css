@@ -1,0 +1,195 @@
+/* Stiluri generale similare cu grade-view */
+.progress-view-container {
+    padding: 20px;
+    max-width: 1000px;
+    margin: 20px auto;
+    font-family: sans-serif;
+  }
+  
+  .view-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 15px;
+  }
+  
+  .view-header h1 {
+    margin: 0;
+    color: #333;
+    font-size: 1.8em;
+  }
+  
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    color: #007bff;
+    font-size: 0.9em;
+  }
+  
+  .back-link .material-icons {
+    margin-right: 5px;
+  }
+  
+  .card {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-bottom: 20px; /* Spațiu între carduri */
+  }
+  
+  /* Secțiune Sumar */
+  .summary-section h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #444;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+  }
+  
+  .summary-stats {
+    display: flex;
+    justify-content: space-around; /* Distribuie cardurile uniform */
+    flex-wrap: wrap; /* Permite împărțirea pe rânduri pe ecrane mici */
+    gap: 15px; /* Spațiu între carduri */
+  }
+  
+  .stat-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 6px;
+    min-width: 150px; /* Lățime minimă pentru cardurile de statistici */
+    flex-grow: 1; /* Permite cardurilor să crească pentru a umple spațiul */
+    text-align: center;
+  }
+  
+  .stat-label {
+    font-size: 0.9em;
+    color: #666;
+    margin-bottom: 5px;
+  }
+  
+  .stat-value {
+    font-size: 1.6em;
+    font-weight: bold;
+    color: #333;
+  }
+  
+  /* Secțiune Progres pe Cursuri */
+  .course-progress-section h2 {
+      margin-top: 0;
+      margin-bottom: 15px;
+      color: #444;
+  }
+  
+  .course-progress-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* Responsive grid */
+    gap: 20px;
+  }
+  
+  .course-progress-card {
+    display: flex;
+    flex-direction: column;
+    /* Reuse card styling from above */
+  }
+  
+  .course-progress-card h3 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    color: #0056b3; /* Albastru pentru titlu */
+  }
+  
+  .course-details {
+    font-size: 0.9em;
+    color: #555;
+    margin-bottom: 15px;
+    display: flex;
+    justify-content: space-between; /* Spațiază creditele și nr. note */
+  }
+  
+  .credits::before, .grades-count::before {
+    /* Optional: Add icons if needed */
+    /* content: "credit_score"; */ /* Exemplu Material Icon */
+    font-family: 'Material Icons';
+    margin-right: 5px;
+    vertical-align: bottom;
+    /* Add specific icons if desired */
+  }
+  /* Specific icons if needed */
+  .credits::before { content: "school"; }
+  .grades-count::before { content: "assessment"; }
+  
+  
+  .course-average {
+    margin-top: auto; /* Împinge media în jos */
+    padding-top: 10px;
+    border-top: 1px solid #eee;
+    text-align: right;
+  }
+  
+  .average-label {
+    font-size: 0.9em;
+    color: #666;
+    margin-right: 8px;
+  }
+  
+  .average-value {
+    font-size: 1.3em;
+    font-weight: bold;
+  }
+  
+  /* Clase pentru culori medii */
+  .average-pass {
+    color: #28a745; /* Verde */
+  }
+  
+  .average-fail {
+    color: #dc3545; /* Roșu */
+  }
+  
+  .average-ok { /* Example for mid-range grades */
+    color: #ffc107; /* Galben */
+  }
+  
+  .average-na {
+      color: #6c757d; /* Gri */
+      font-style: italic;
+      font-size: 1.1em; /* Slightly smaller for N/A */
+      font-weight: normal;
+  }
+  
+  
+  .view-grades-link {
+      margin-top: 15px;
+      text-decoration: none;
+      color: #007bff;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      align-self: flex-end; /* Aliniază linkul la dreapta jos */
+      transition: color 0.2s ease; /* Smooth hover effect */
+  }
+  .view-grades-link:hover {
+      color: #0056b3;
+  }
+  
+  .view-grades-link .material-icons {
+      font-size: 1.2em;
+      margin-left: 2px;
+  }
+  
+  .no-data {
+    text-align: center;
+    color: #777;
+    margin-top: 30px;
+    font-style: italic;
+  }
+  
+ @import url('https://fonts.googleapis.com/icon?family=Material+Icons');

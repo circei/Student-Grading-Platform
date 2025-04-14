@@ -1,1 +1,55 @@
-<p>progress-view works!</p>
+<div class="progress-view-container">
+  <header class="view-header">
+    <h1>Progres Academic - {{ student.name }}</h1>
+    <a routerLink="/dashboard" class="back-link">
+      <span class="material-icons">arrow_back</span> Înapoi la Dashboard
+    </a>
+  </header>
+
+  <section class="summary-section card">
+    <h2>Sumar General</h2>
+    <div class="summary-stats">
+      <div class="stat-card">
+        <span class="stat-label">Medie Generală (din medii cursuri)</span>
+        <span class="stat-value">{{ overallAverage !== null ? overallAverage : '-' }}</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Credite Obținute (medie >= 5)</span>
+        <span class="stat-value">{{ totalCreditsEarned }}</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Total Cursuri Evaluate</span>
+        <span class="stat-value">{{ evaluatedCoursesCount }} / {{ totalCoursesCount }}</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="course-progress-section">
+    <h2>Progres pe Cursuri</h2>
+    @if (progressData.length > 0) {
+      <div class="course-progress-grid">
+        @for (courseProg of progressData; track courseProg.courseName) {
+          <div class="course-progress-card card">
+            <h3>{{ courseProg.courseName }}</h3>
+            <div class="course-details">
+              <span class="credits">{{ courseProg.credits }} credite</span>
+              <span class="grades-count">{{ courseProg.gradesCount }} note</span>
+            </div>
+            <div class="course-average">
+              <span class="average-label">Medie Curs:</span>
+              <span class="average-value {{ getAverageClass(courseProg.average) }}">
+                {{ courseProg.average !== null ? courseProg.average : 'N/A' }}
+              </span>
+            </div>
+            <a [routerLink]="['/grade-view', courseProg.courseName]" class="view-grades-link">
+                Vezi Note <span class="material-icons">chevron_right</span>
+            </a>
+          </div>
+        }
+      </div>
+    } @else {
+      <p class="no-data">Nu există date despre progres pentru a fi afișate.</p>
+    }
+  </section>
+
+</div>
