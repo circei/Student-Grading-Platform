@@ -1,5 +1,7 @@
 export interface Student {
-    name: string;
-    email: string;
-    specialization: string;
-  }
+  id: number;
+  name: string;
+  email: string;
+  specialization: string;
+  year: number;
+}

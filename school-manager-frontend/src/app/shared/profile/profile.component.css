@@ -1,0 +1,157 @@
+.profile-container {
+    max-width: 800px;
+    margin: 30px auto;
+    font-family: sans-serif;
+    /* Folosim stilul .card definit anterior, dar putem adăuga specificități */
+  }
+  
+  .card {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 25px 30px;
+  }
+  
+  .profile-header {
+    display: flex;
+    align-items: center;
+    gap: 25px; /* Spațiu între avatar, info și acțiuni */
+    margin-bottom: 20px;
+    flex-wrap: wrap; /* Permite împărțirea pe ecrane mici */
+  }
+  
+  .profile-avatar .account-icon {
+    font-size: 80px; /* Mărime iconiță avatar */
+    color: #ccc; /* Culoare placeholder */
+    background-color: #f0f0f0;
+    border-radius: 50%;
+    padding: 10px;
+    display: block;
+  }
+  
+  .profile-info h1 {
+    margin: 0 0 5px 0;
+    color: #333;
+    font-size: 1.9em;
+  }
+  
+  .profile-info .user-role {
+    margin: 0 0 5px 0;
+    color: #007bff; /* Culoare specifică pentru rol */
+    font-weight: bold;
+    font-size: 0.9em;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .profile-info .user-email {
+    margin: 0;
+    color: #666;
+    font-size: 1em;
+  }
+  
+  .profile-actions {
+    margin-left: auto; /* Împinge butoanele la dreapta */
+    display: flex;
+    gap: 10px;
+  }
+  
+  .action-button {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 15px;
+    border: 1px solid #ddd;
+    background-color: #f8f9fa;
+    color: #333;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+  }
+  
+  .action-button .material-icons {
+    margin-right: 6px;
+    font-size: 1.1em;
+  }
+  
+  .action-button:hover {
+    background-color: #e9ecef;
+    border-color: #ccc;
+  }
+  
+  .edit-button {
+    background-color: #007bff;
+    color: #fff;
+  }
+  
+  .password-button {
+    background-color: #28a745;
+    color: #fff;
+  }
+  
+  .divider {
+    border: none;
+    border-top: 1px solid #eee;
+    margin: 20px 0;
+  }
+  
+  .profile-details h2 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #444;
+    font-size: 1.4em;
+  }
+  
+  .detail-item {
+    display: flex;
+    align-items: flex-start; /* Aliniază la început dacă valoarea e pe mai multe rânduri */
+    margin-bottom: 15px;
+    gap: 10px; /* Spațiu între label și value */
+  }
+  
+  .detail-label {
+    font-weight: bold;
+    color: #555;
+    width: 180px; /* Lățime fixă pentru aliniere */
+    flex-shrink: 0; /* Nu permite micșorarea label-ului */
+    display: inline-flex;
+    align-items: center;
+  }
+  
+  .detail-label .material-icons {
+      margin-right: 8px;
+      color: #007bff; /* Culoare iconițe */
+  }
+  
+  .detail-value {
+    color: #333;
+    flex-grow: 1; /* Permite valorii să ocupe spațiul rămas */
+  }
+  
+  .detail-item.courses .detail-label {
+    align-items: flex-start; /* Aliniază labelul sus pt liste */
+    margin-top: 4px;
+  }
+  
+  .course-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  .course-list li {
+    background-color: #e9f5ff; /* Fundal ușor albastru pentru cursuri */
+    padding: 5px 10px;
+    border-radius: 4px;
+    margin-bottom: 5px;
+    font-size: 0.95em;
+    border: 1px solid #cce5ff;
+  }
+  
+  .no-profile {
+    text-align: center;
+    color: #777;
+    padding: 30px;
+  }
+  
+ @import url('https://fonts.googleapis.com/icon?family=Material+Icons'); 

@@ -1,0 +1,134 @@
+.grade-view-container {
+    padding: 20px;
+    max-width: 900px;
+    margin: 20px auto;
+    font-family: sans-serif;
+  }
+  
+  .view-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 15px;
+  }
+  
+  .view-header h1 {
+    margin: 0;
+    color: #333;
+    font-size: 1.8em;
+  }
+  
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+    color: #007bff;
+    font-size: 0.9em;
+  }
+  
+  .back-link .material-icons {
+    margin-right: 5px;
+    font-size: 1.2em; /* Adjust icon size if needed */
+  }
+  
+  .grades-summary {
+    background-color: #f9f9f9;
+    padding: 10px 15px;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    font-size: 0.95em;
+    color: #555;
+  }
+  
+  .summary-label {
+    font-weight: bold;
+    margin-right: 5px;
+  }
+  
+  .summary-value {
+    margin-right: 15px;
+  }
+  
+  .average-label {
+      margin-left: 10px;
+      border-left: 1px solid #ddd;
+      padding-left: 15px;
+  }
+  
+  .average-value {
+      font-weight: bold;
+      color: #333;
+  }
+  
+  
+  .card {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+  }
+  
+  .grades-list {
+    /* Styles for the grades list section */
+    margin-top: 20px;
+  }
+  
+.grade-list-header,
+.grade-item-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 0.5fr;
+  gap: 15px;
+  padding: 12px 10px;
+  border-bottom: 1px solid #eee;
+  align-items: center;
+}
+
+.grade-list-header {
+  font-weight: bold;
+  color: #555;
+  background-color: #f9f9f9;
+  border-top-left-radius: 6px;
+  border-top-right-radius: 6px;
+  border-bottom: 2px solid #ddd;
+}
+
+.grade-item-row:last-child {
+  border-bottom: none;
+}
+
+.header-item,
+.grade-detail {
+  text-align: left;
+}
+
+.header-item.value,
+.grade-detail.value {
+  text-align: right;
+  font-weight: bold;
+}
+
+.grade-detail.value {
+    font-size: 1.1em;
+    color: #007bff;
+}
+
+.grade-detail.course {
+  font-weight: 500;
+  color: #333;
+}
+
+.grade-detail.date {
+  color: #666;
+  font-size: 0.9em;
+}
+
+.no-grades {
+    text-align: center;
+    color: #777;
+    margin-top: 30px;
+    font-style: italic;
+  }
+  
+  @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
