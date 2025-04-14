@@ -17,6 +17,7 @@ from typing import Dict, List, Optional
 import openpyxl
 from tempfile import NamedTemporaryFile
 from app.validators import GradeValidator
+from app.crud import create_student, get_student, get_students, update_student, delete_student
 
 
 import firebase_admin
@@ -261,6 +262,15 @@ class CourseAverageResponse(BaseModel):
     subject_averages: Dict[str, float]
     overall_average: Optional[float]
     total_students: int
+
+class Student(BaseModel):
+    id: int
+    name: str
+    email: str
+    date_of_birth: str
+
+    class Config:
+        orm_mode = True
 
 # ----------------------------
 # Database Dependency
@@ -1032,6 +1042,39 @@ def get_course_averages(
     
     # Calculate and return the averages
     return calculate_course_averages(db, course_id)
+
+# ----------------------------
+# Student Management Endpoints
+# ----------------------------
+
+@app.post("/students", response_model=Student)
+def create_student_endpoint(name: str, email: str, date_of_birth: str, db: Session = Depends(get_db)):
+    return create_student(db, name, email, date_of_birth)
+
+@app.get("/students/{student_id}", response_model=Student)
+def get_student_endpoint(student_id: int, db: Session = Depends(get_db)):
+    student = get_student(db, student_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    return student
+
+@app.get("/students", response_model=List[Student])
+def get_students_endpoint(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+    return get_students(db, skip, limit)
+
+@app.put("/students/{student_id}", response_model=Student)
+def update_student_endpoint(student_id: int, name: str = None, email: str = None, date_of_birth: str = None, db: Session = Depends(get_db)):
+    student = update_student(db, student_id, name, email, date_of_birth)
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    return student
+
+@app.delete("/students/{student_id}")
+def delete_student_endpoint(student_id: int, db: Session = Depends(get_db)):
+    student = delete_student(db, student_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    return {"detail": "Student deleted"}
 
 # ----------------------------
 # HTTPS Entry Point
