@@ -17,35 +17,28 @@ def create_grade(
     validator: GradeValidator = default_validator,
     changed_by: str = None
 ) -> Grade:
-    """Create a new grade after validation and record history."""
-    # Validate the grade data
+    """Create a new grade and record history."""
     grade_data = {"student_id": student_id, "subject": subject, "grade": grade}
     is_valid, error_message = validator.validate_grade_data(grade_data)
-    
     if not is_valid:
         raise ValueError(error_message)
-    
-    # Create the grade
-    new_grade = Grade(
-        student_id=int(student_id), 
-        subject=str(subject), 
-        grade=int(grade)
-    )
+
+    new_grade = Grade(student_id=student_id, subject=subject, grade=grade)
     db.add(new_grade)
     db.commit()
     db.refresh(new_grade)
-    
-    # Create history entry for new grade
-    history_entry = GradeHistory.create_log(
-        grade=new_grade,
+
+    # Record history
+    create_grade_history(
+        db,
+        grade_id=new_grade.id,
+        student_id=student_id,
+        subject=subject,
         old_value=None,
         new_value=grade,
         action="create",
         changed_by=changed_by
     )
-    db.add(history_entry)
-    db.commit()
-    
     return new_grade
 
 def update_grade(
@@ -55,70 +48,55 @@ def update_grade(
     validator: GradeValidator = default_validator,
     changed_by: str = None
 ) -> Optional[Grade]:
-    """Update a grade after validation and record history."""
-    # Validate the grade value
+    """Update a grade and record history."""
     is_valid, error_message = validator.validate_grade(new_grade)
     if not is_valid:
         raise ValueError(error_message)
-    
-    # Get the grade to update
+
     grade = db.query(Grade).filter(Grade.id == grade_id).first()
     if grade:
-        # Store old value for history
         old_value = grade.grade
-        
-        # Only record history if value actually changed
-        if old_value != int(new_grade):
-            # Update the grade
-            grade.grade = int(new_grade)
-            db.commit()
-            db.refresh(grade)
-            
-            # Create history entry for the update
-            history_entry = GradeHistory.create_log(
-                grade=grade,
-                old_value=old_value,
-                new_value=new_grade,
-                action="update",
-                changed_by=changed_by
-            )
-            db.add(history_entry)
-            db.commit()
-    
-    return grade
+        grade.grade = new_grade
+        db.commit()
+        db.refresh(grade)
+
+        # Record history
+        create_grade_history(
+            db,
+            grade_id=grade.id,
+            student_id=grade.student_id,
+            subject=grade.subject,
+            old_value=old_value,
+            new_value=new_grade,
+            action="update",
+            changed_by=changed_by
+        )
+        return grade
+    return None
 
 def delete_grade(
     db: Session, 
     grade_id: int,
     changed_by: str = None
 ) -> Optional[Grade]:
-    """Delete a grade by ID and record history."""
+    """Delete a grade and record history."""
     grade = db.query(Grade).filter(Grade.id == grade_id).first()
     if grade:
-        # Store grade details before deletion
-        deleted_grade_copy = Grade(
-            id=grade.id,
+        db.delete(grade)
+        db.commit()
+
+        # Record history
+        create_grade_history(
+            db,
+            grade_id=grade.id,
             student_id=grade.student_id,
             subject=grade.subject,
-            grade=grade.grade
-        )
-        
-        # Delete the grade
-        db.delete(grade)
-        
-        # Create history entry for the deletion
-        history_entry = GradeHistory.create_log(
-            grade=deleted_grade_copy,
-            old_value=deleted_grade_copy.grade,
+            old_value=grade.grade,
             new_value=None,
             action="delete",
             changed_by=changed_by
         )
-        db.add(history_entry)
-        db.commit()
-        
-        return deleted_grade_copy
-    
+        return grade
     return None
 
 def get_grades_by_student(db: Session, student_id: int) -> List[Grade]:
@@ -156,8 +134,11 @@ def bulk_create_grades(
                 db.flush()  # Flush to get the ID
                 
                 # Create history entry
-                history_entry = GradeHistory.create_log(
-                    grade=new_grade,
+                history_entry = create_grade_history(
+                    db=db,
+                    grade_id=new_grade.id,
+                    student_id=new_grade.student_id,
+                    subject=new_grade.subject,
                     old_value=None,
                     new_value=new_grade.grade,
                     action="create",
@@ -190,8 +171,8 @@ def bulk_create_grades(
 
 # Functions to get grade history
 def get_grade_history(db: Session, grade_id: int) -> List[GradeHistory]:
-    """Get history for a specific grade ID."""
-    return db.query(GradeHistory).filter(GradeHistory.grade_id == grade_id).order_by(GradeHistory.id.desc()).all()
+    """Retrieve grade history for a specific grade."""
+    return db.query(GradeHistory).filter(GradeHistory.grade_id == grade_id).all()
 
 def get_student_grade_history(
     db: Session, 
@@ -200,7 +181,7 @@ def get_student_grade_history(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None
 ) -> List[GradeHistory]:
-    """Get grade history for a student, with optional filters."""
+    """Retrieve grade history for a specific student."""
     query = db.query(GradeHistory).filter(GradeHistory.student_id == student_id)
     
     # Apply filters if provided
@@ -519,3 +500,29 @@ def delete_student(db: Session, student_id: int):
         db.delete(student)
         db.commit()
     return student
+
+def create_grade_history(
+    db: Session,
+    grade_id: int,
+    student_id: int,
+    subject: str,
+    old_value: Optional[int],
+    new_value: Optional[int],
+    action: str,
+    changed_by: Optional[str]
+):
+    """Create a new grade history entry."""
+    history_entry = GradeHistory(
+        grade_id=grade_id,
+        student_id=student_id,
+        subject=subject,
+        old_value=old_value,
+        new_value=new_value,
+        action=action,
+        timestamp=datetime.now().isoformat(),
+        changed_by=changed_by
+    )
+    db.add(history_entry)
+    db.commit()
+    db.refresh(history_entry)
+    return history_entry
