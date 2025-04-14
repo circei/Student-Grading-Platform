@@ -24,8 +24,16 @@ export class GradeManagementComponent {
 
   // Date dummy
   students: Student[] = [
-    { name: 'Maria Popescu', email: 'maria@uni.ro', specialization: 'Informatică' },
-    { name: 'Andrei Ionescu', email: 'andrei@uni.ro', specialization: 'Matematică' }
+    {
+      name: 'Maria Popescu', email: 'maria@uni.ro', specialization: 'Informatică',
+      id: 0,
+      year: 0
+    },
+    {
+      name: 'Andrei Ionescu', email: 'andrei@uni.ro', specialization: 'Matematică',
+      id: 0,
+      year: 0
+    }
   ];
 
   grades: Grade[] = [

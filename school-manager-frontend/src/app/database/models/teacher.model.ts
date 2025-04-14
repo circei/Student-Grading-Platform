@@ -1,5 +1,8 @@
 export interface Professor {
-    name: string;
-    email: string;
-    department: string;
-  }
+  id: number;
+  name: string;
+  email: string;
+  department: string;
+  // Am adăugat opțional materii predate
+  coursesTaught?: string[];
+}

@@ -14,16 +14,19 @@ export class AdminComponent {
   students: Student[] = [];       // Listă studenți
   professors: Professor[] = [];   // Listă profesori
 
-  newStudent: Student = {         // Date student nou
+  newStudent: Student = {
     name: '',
     email: '',
-    specialization: ''
+    specialization: '',
+    id: 0,
+    year: 0
   };
 
-  newProfessor: Professor = {     // Date profesor nou
+  newProfessor: Professor = {
     name: '',
     email: '',
-    department: ''
+    department: '',
+    id: 0
   };
 
   // Schimbă tab-ul activ
@@ -35,7 +38,7 @@ export class AdminComponent {
   addStudent(): void {
     if (this.newStudent.name && this.newStudent.email && this.newStudent.specialization) {
       this.students.push({...this.newStudent});
-      this.newStudent = { name: '', email: '', specialization: '' }; // Resetare formular
+      this.newStudent = { name: '', email: '', specialization: '', id: 0, year: 0 }; // Resetare formular
     }
   }
 
@@ -43,7 +46,7 @@ export class AdminComponent {
   addProfessor(): void {
     if (this.newProfessor.name && this.newProfessor.email && this.newProfessor.department) {
       this.professors.push({...this.newProfessor});
-      this.newProfessor = { name: '', email: '', department: '' }; // Resetare formular
+      this.newProfessor = { name: '', email: '', department: '', id: 0 }; // Resetare formular
     }
   }
 
