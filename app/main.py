@@ -18,7 +18,8 @@ import openpyxl
 from tempfile import NamedTemporaryFile
 from app.validators import GradeValidator
 from app.crud import create_student, get_student, get_students, update_student, delete_student
-
+from apscheduler.schedulers.background import BackgroundScheduler
+from app.backup import create_backup
 
 import firebase_admin
 from firebase_admin import credentials, auth
@@ -32,6 +33,21 @@ from app.crud import (
     get_students_in_course, get_courses_for_student
 )
 from app.database import Course, StudentCourse
+
+DATABASE_URL = "sqlite:///app.db"  # Update with your actual database URL
+
+def schedule_backups():
+    """Schedule daily backups."""
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(
+        func=create_backup,
+        trigger="cron",
+        hour=2,  # Run daily at 2 AM
+        args=[DATABASE_URL],
+        id="daily_backup",
+        replace_existing=True,
+    )
+    scheduler.start()
 
 def is_excel_file(filename: str) -> bool:
     """Check if the file is an Excel file based on extension."""
@@ -356,6 +372,14 @@ def require_roles(required_roles: List[str]):
         return user
     return role_checker
 
+@app.post("/backup", response_model=dict)
+def manual_backup(db_url: str = DATABASE_URL):
+    """Manually trigger a database backup."""
+    try:
+        backup_file = create_backup(db_url)
+        return {"message": "Backup created successfully", "file": backup_file}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Backup failed: {str(e)}")
 # ----------------------------
 # Authentication Endpoints
 # ----------------------------
