@@ -4,6 +4,7 @@ from app.validators import GradeValidator
 from typing import Tuple, List, Dict, Any, Optional
 from datetime import datetime
 from app.database import Grade, GradeHistory
+from sqlalchemy import func
 
 # Default validator with range 0-100
 default_validator = GradeValidator(min_grade=0, max_grade=100)
@@ -318,3 +319,170 @@ def get_courses_for_student(db: Session, student_id: int) -> List[Course]:
     if not course_ids:
         return []  # Return empty list if student has no courses
     return db.query(Course).filter(Course.id.in_(course_ids)).all()
+
+def get_grades_by_student_and_course(db: Session, student_id: int, course_id: int) -> List[Grade]:
+    """
+    Get all grades for a student that are related to a specific course.
+    
+    This implementation filters grades based on course enrollment and can be extended 
+    to filter by specific subjects associated with the course.
+    """
+    # Get course details
+    course = get_course(db, course_id)
+    if not course:
+        return []
+    
+    # Check if student is enrolled in the course
+    student_ids = get_students_in_course(db, course_id)
+    if student_id not in student_ids:
+        return []  # Student not in course
+    
+    # Get all grades for the student
+    grades = get_grades_by_student(db, student_id)
+    
+    # In a real-world implementation with course-subject relationships:
+    # 1. You would get all subjects associated with this course
+    # 2. Then filter the grades to only include those subjects
+    
+    # For now, we'll implement a basic filtering mechanism based on course name
+    # This assumes subjects might contain course name or code
+    filtered_grades = []
+    course_keywords = course.name.lower().split()
+    
+    # Filter grades that might be related to the course based on subject name
+    for grade in grades:
+        # Check if any course keyword appears in the subject
+        subject_lower = grade.subject.lower()
+        if any(keyword in subject_lower for keyword in course_keywords):
+            filtered_grades.append(grade)
+    
+    # If no grades match the filtering, fall back to all grades
+    # This is a safety measure since our filtering is basic
+    if not filtered_grades and grades:
+        return grades
+        
+    return filtered_grades
+
+def calculate_student_averages(db: Session, student_id: int, course_id: Optional[int] = None) -> Dict[str, Any]:
+    """
+    Calculate a student's grade averages - both per-subject and overall.
+    
+    Args:
+        db: Database session
+        student_id: ID of the student
+        course_id: Optional course ID to filter grades by course
+        
+    Returns:
+        Dictionary with subject averages and overall average
+    """
+    # Get grades based on whether course filtering is needed
+    grades = []
+    if course_id:
+        # Use the enhanced course-specific grades function
+        grades = get_grades_by_student_and_course(db, student_id, course_id)
+    else:
+        # Get all grades for student if no course filtering
+        grades = get_grades_by_student(db, student_id)
+    
+    if not grades:
+        return {
+            "student_id": student_id,
+            "subject_averages": {},
+            "overall_average": None,
+            "total_grades": 0,
+            "course_id": course_id  # Include course ID if provided
+        }
+    
+    # Calculate averages per subject
+    subject_grades = {}
+    for grade in grades:
+        if grade.subject not in subject_grades:
+            subject_grades[grade.subject] = []
+        subject_grades[grade.subject].append(grade.grade)
+    
+    # Calculate the average for each subject
+    subject_averages = {}
+    for subject, grades_list in subject_grades.items():
+        subject_averages[subject] = sum(grades_list) / len(grades_list)
+    
+    # Calculate overall average
+    all_grades = [grade.grade for grade in grades]
+    overall_average = sum(all_grades) / len(all_grades)
+    
+    result = {
+        "student_id": student_id,
+        "subject_averages": subject_averages,
+        "overall_average": overall_average,
+        "total_grades": len(all_grades)
+    }
+    
+    # Include course information if provided
+    if course_id:
+        result["course_id"] = course_id
+        
+        # Get course name for reference
+        course = get_course(db, course_id)
+        if course:
+            result["course_name"] = course.name
+    
+    return result
+
+def calculate_course_averages(db: Session, course_id: int) -> Dict[str, Any]:
+    """
+    Calculate the average grades for all students in a course.
+    
+    Args:
+        db: Database session
+        course_id: ID of the course
+        
+    Returns:
+        Dictionary with course statistics
+    """
+    # Get all students in the course
+    student_ids = get_students_in_course(db, course_id)
+    
+    if not student_ids:
+        return {
+            "course_id": course_id,
+            "student_averages": [],
+            "subject_averages": {},
+            "overall_average": None,
+            "total_students": 0
+        }
+    
+    # Calculate averages for each student
+    student_averages = []
+    all_grades = []
+    subject_grades = {}
+    
+    for student_id in student_ids:
+        student_data = calculate_student_averages(db, student_id)
+        student_averages.append({
+            "student_id": student_id,
+            "average": student_data["overall_average"]
+        })
+        
+        # Collect grades per subject for course-wide subject averages
+        for subject, avg in student_data["subject_averages"].items():
+            if subject not in subject_grades:
+                subject_grades[subject] = []
+            subject_grades[subject].append(avg)
+        
+        if student_data["overall_average"] is not None:
+            all_grades.append(student_data["overall_average"])
+    
+    # Calculate subject averages across all students
+    course_subject_averages = {}
+    for subject, grades_list in subject_grades.items():
+        course_subject_averages[subject] = sum(grades_list) / len(grades_list)
+    
+    # Calculate overall course average
+    course_average = sum(all_grades) / len(all_grades) if all_grades else None
+    
+    return {
+        "course_id": course_id,
+        "student_averages": student_averages,
+        "subject_averages": course_subject_averages,
+        "overall_average": course_average,
+        "total_students": len(student_averages)
+    }
