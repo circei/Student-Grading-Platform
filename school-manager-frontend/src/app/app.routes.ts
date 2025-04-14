@@ -8,16 +8,18 @@ import { GradeManagementComponent } from './teacher/grade-management/grade-manag
 import { StudentDashboardComponent } from './student/student-dashboard/student-dashboard.component';
 import { GradeViewComponent } from './student/grade-view/grade-view.component';
 import { ProgressViewComponent } from './student/progress-view/progress-view.component';
+import { ProfileComponent } from './shared/profile/profile.component';
 
 export const routes: Routes = [
-  { path: '', redirectTo: 'progress-view', pathMatch: 'full' },
+  { path: '', redirectTo: 'profile', pathMatch: 'full' },
   { path: 'auth', component: AuthComponent },
   { path: 'forgot-password', component: ForgotPasswordComponent },
   { path: 'admin', component: AdminComponent },
   { path: 'teacher-dashborad', component: TeacherDashboardComponent },
-  { path: 'class-management', component: ClassManagementComponent},
+  { path: 'class-management', component: ClassManagementComponent },
   { path: 'grade-management', component: GradeManagementComponent },
-  {path: 'student-dashboard', component: StudentDashboardComponent}, 
-  { path: 'grade-view', component: GradeViewComponent }, 
-  {path: 'progress-view', component: ProgressViewComponent}, 
+  { path: 'student-dashboard', component: StudentDashboardComponent },
+  { path: 'grade-view', component: GradeViewComponent },
+  { path: 'progress-view', component: ProgressViewComponent },
+  { path: 'profile', component: ProfileComponent }, 
 ];

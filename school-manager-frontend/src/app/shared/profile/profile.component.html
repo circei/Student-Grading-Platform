@@ -1,1 +1,65 @@
-<p>profile works!</p>
+<div class="profile-container card">
+    @if (userProfile) {
+      <header class="profile-header">
+        <div class="profile-avatar">
+          <span class="material-icons account-icon">account_circle</span>
+        </div>
+        <div class="profile-info">
+          <h1>{{ userProfile.name }}</h1>
+          <p class="user-role">
+            @switch (currentUserRole) {
+              @case (RoleEnum.Student) { Rol: Student }
+              @case (RoleEnum.Teacher) { Rol: Profesor }
+              @case (RoleEnum.Admin) { Rol: Administrator }
+            }
+          </p>
+          <p class="user-email">{{ userProfile.email }}</p>
+        </div>
+        <div class="profile-actions">
+           <button class="action-button edit-button" title="Editează Profilul">
+              <span class="material-icons">edit</span> Editează
+           </button>
+           <button class="action-button password-button" title="Schimbă Parola">
+              <span class="material-icons">lock_reset</span> Parolă
+           </button>
+        </div>
+      </header>
+  
+      <hr class="divider">
+  
+      <section class="profile-details">
+        <h2>Detalii Profil</h2>
+  
+        @if (isStudent(userProfile)) {
+          <div class="detail-item">
+            <span class="detail-label"><span class="material-icons">school</span> Specializare:</span>
+            <span class="detail-value">{{ userProfile.specialization }}</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label"><span class="material-icons">calendar_today</span> An Studiu:</span>
+            <span class="detail-value">{{ userProfile.year }}</span>
+          </div>
+        }
+  
+        @if (isProfessor(userProfile)) {
+          <div class="detail-item">
+            <span class="detail-label"><span class="material-icons">corporate_fare</span> Departament:</span>
+            <span class="detail-value">{{ userProfile.department }}</span>
+          </div>
+          @if (userProfile.coursesTaught && userProfile.coursesTaught.length > 0) {
+            <div class="detail-item courses">
+              <span class="detail-label"><span class="material-icons">book</span> Cursuri Predate:</span>
+              <ul class="detail-value course-list">
+                @for(course of userProfile.coursesTaught; track course) {
+                  <li>{{ course }}</li>
+                }
+              </ul>
+            </div>
+          }
+        }
+  
+        </section>
+    } @else {
+      <p class="no-profile">Informațiile profilului nu sunt disponibile.</p>
+    }
+  </div>
