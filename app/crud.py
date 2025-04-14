@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.database import Course, Grade, StudentCourse
+from app.database import Course, Grade, StudentCourse, Student
 from app.validators import GradeValidator
 from typing import Tuple, List, Dict, Any, Optional
 from datetime import datetime
@@ -486,3 +486,36 @@ def calculate_course_averages(db: Session, course_id: int) -> Dict[str, Any]:
         "overall_average": course_average,
         "total_students": len(student_averages)
     }
+
+def create_student(db: Session, name: str, email: str, date_of_birth: str):
+    student = Student(name=name, email=email, date_of_birth=date_of_birth)
+    db.add(student)
+    db.commit()
+    db.refresh(student)
+    return student
+
+def get_student(db: Session, student_id: int):
+    return db.query(Student).filter(Student.id == student_id).first()
+
+def get_students(db: Session, skip: int = 0, limit: int = 10):
+    return db.query(Student).offset(skip).limit(limit).all()
+
+def update_student(db: Session, student_id: int, name: str = None, email: str = None, date_of_birth: str = None):
+    student = db.query(Student).filter(Student.id == student_id).first()
+    if student:
+        if name:
+            student.name = name
+        if email:
+            student.email = email
+        if date_of_birth:
+            student.date_of_birth = date_of_birth
+        db.commit()
+        db.refresh(student)
+    return student
+
+def delete_student(db: Session, student_id: int):
+    student = db.query(Student).filter(Student.id == student_id).first()
+    if student:
+        db.delete(student)
+        db.commit()
+    return student

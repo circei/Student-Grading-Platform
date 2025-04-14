@@ -54,7 +54,7 @@ def test_signup_and_login():
     # Test the signup endpoint
     response = client.post(
         "/auth/signup",
-        json={"username": "johndoe", "email": "john@example.com", "password": "secret"}
+        json={"username": "johndoe", "email": "john@example.com", "password": "secret123"}
     )
     assert response.status_code == 200
     data = response.json()
@@ -64,7 +64,7 @@ def test_signup_and_login():
     # Test duplicate signup returns an error
     response = client.post(
         "/auth/signup",
-        json={"username": "johndoe", "email": "john@example.com", "password": "secret"}
+        json={"username": "johndoe", "email": "john@example.com", "password": "secret123"}
     )
     assert response.status_code == 400
     assert response.json()["detail"] == "Username already registered"
@@ -75,3 +75,10 @@ def test_signup_and_login():
     assert response.status_code == 200
     data = response.json()
     assert data["username"] == "johndoe"
+
+def test_create_student():
+    response = client.post("/students", json={"name": "John Doe", "email": "john@example.com", "date_of_birth": "2000-01-01"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["name"] == "John Doe"
+    assert data["email"] == "john@example.com"

@@ -19,6 +19,14 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
 
+class Student(Base):
+    __tablename__ = "students"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=False)
+    date_of_birth = Column(String, nullable=True)
+    created_at = Column(String, default=datetime.now().isoformat())
+
 class Grade(Base):
     __tablename__ = "grades"
     id = Column(Integer, primary_key=True, index=True)
