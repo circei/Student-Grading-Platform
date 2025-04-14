@@ -1,1 +1,45 @@
-<p>grade-view works!</p>
+<div class="grade-view-container">
+    <header class="view-header">
+      <h1>
+        Notele mele
+        @if(courseFilter) {
+          pentru {{ courseFilter }}
+        }
+      </h1>
+      <a routerLink="/dashboard" class="back-link">
+        <span class="material-icons">arrow_back</span> Înapoi la Dashboard
+      </a>
+    </header>
+  
+    @if (filteredGrades.length > 0) {
+      <div class="grades-summary">
+         <span class="summary-label">Student:</span>
+         <span class="summary-value">{{ studentName }}</span>
+         @if (averageGrade) {
+           <span class="summary-label average-label">Medie {{ courseFilter ? 'curs' : 'totală afișată' }}:</span>
+           <span class="summary-value average-value">{{ averageGrade }}</span>
+         }
+      </div>
+  
+      <section class="grades-list card">
+        <div class="grade-list-header">
+          <div class="header-item course">Curs</div>
+          <div class="header-item date">Data</div>
+          <div class="header-item value">Nota</div>
+        </div>
+        @for (grade of filteredGrades; track grade.id) {
+          <div class="grade-item-row">
+            <div class="grade-detail course">{{ grade.course }}</div>
+            <div class="grade-detail date">{{ grade.date | date:'dd.MM.yyyy' }}</div>
+            <div class="grade-detail value">{{ grade.value }}</div>
+          </div>
+        }
+      </section>
+    } @else {
+      <p class="no-grades">Nu există note de afișat
+          @if(courseFilter) {
+              pentru cursul {{ courseFilter }}.
+          }
+      </p>
+    }
+  </div>
