@@ -5,8 +5,8 @@ import re
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
-from typing import List
-from app.crud import create_grade, get_grades_by_student, update_grade, delete_grade, bulk_create_grades
+from typing import Any, List
+from app.crud import calculate_course_averages, calculate_student_averages, create_grade, get_grades_by_student, update_grade, delete_grade, bulk_create_grades
 from typing import Optional
 from fastapi import UploadFile, File
 from fastapi.responses import JSONResponse, StreamingResponse
@@ -248,6 +248,19 @@ class StudentCourseResponse(BaseModel):
 class EnrollmentResponse(BaseModel):
     message: str
     enrollment: Optional[StudentCourseResponse] = None
+
+class StudentAverageResponse(BaseModel):
+    student_id: int
+    subject_averages: Dict[str, float]
+    overall_average: Optional[float]
+    total_grades: int
+
+class CourseAverageResponse(BaseModel):
+    course_id: int
+    student_averages: List[Dict[str, Any]]
+    subject_averages: Dict[str, float]
+    overall_average: Optional[float]
+    total_students: int
 
 # ----------------------------
 # Database Dependency
@@ -973,6 +986,52 @@ def batch_add_students(
         "successful": successful,
         "failed": failed
     }
+
+# ----------------------------
+# Grade Statistics Endpoints
+# ----------------------------
+
+@app.get("/students/{student_id}/averages", response_model=StudentAverageResponse)
+def get_student_averages(
+    student_id: int = Path(..., gt=0),
+    course_id: Optional[int] = Query(None, description="Filter averages by course ID"),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(["admin", "teacher", "student"]))
+):
+    """
+    Get a student's grade averages by subject and overall.
+    
+    Optionally filter by course if specified.
+    """
+    # If student is requesting, only show their own averages
+    if "student" in current_user.get("roles", []) and not any(role in ["admin", "teacher"] for role in current_user.get("roles", [])):
+        if str(current_user.get("uid")) != str(student_id):
+            raise HTTPException(status_code=403, detail="You can only view your own grade averages")
+    
+    # Calculate and return the averages
+    return calculate_student_averages(db, student_id, course_id)
+
+@app.get("/courses/{course_id}/averages", response_model=CourseAverageResponse)
+def get_course_averages(
+    course_id: int = Path(..., gt=0),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(["admin", "teacher"]))
+):
+    """
+    Get average grades for all students in a course.
+    
+    Returns:
+    - Per-student averages
+    - Per-subject averages across the course
+    - Overall course average
+    """
+    # Check if course exists
+    course = get_course(db, course_id)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    
+    # Calculate and return the averages
+    return calculate_course_averages(db, course_id)
 
 # ----------------------------
 # HTTPS Entry Point
