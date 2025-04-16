@@ -1,84 +1,168 @@
+/* grade-table.component.css */
+
+/* Container principal pentru tabel */
 .grade-table-container {
-    overflow-x: auto; /* Permite scroll orizontal dacă tabelul e prea lat */
-    margin: 1em 0;
-    font-family: sans-serif;
+  width: 100%;
+  overflow-x: auto; /* Permite scroll orizontal pe ecrane mici dacă tabelul e prea lat */
+  border: 1px solid var(--border-color, #e0e0e0); /* Folosim variabile dacă există, altfel fallback */
+  border-radius: var(--border-radius, 8px);
+  background-color: var(--background-color, #fff);
+}
+
+/* Stiluri de bază pentru tabel */
+.styled-table {
+  width: 100%;
+  border-collapse: collapse; /* Elimină spațiile dintre celule */
+  font-size: 0.9rem; /* Dimensiune font de bază */
+  color: var(--text-color, #333);
+}
+
+/* Stiluri pentru headerul tabelului */
+.styled-table thead {
+  background-color: var(--background-alt-color, #f8f9fa);
+  border-bottom: 2px solid var(--border-color-heavy, #dee2e6);
+}
+
+.styled-table th {
+  padding: 1rem 1.25rem; /* Padding generos */
+  text-align: left;
+  font-weight: 600; /* Font bold pentru header */
+  color: var(--muted-text-color, #6c757d);
+  text-transform: uppercase; /* Text cu majuscule */
+  letter-spacing: 0.5px; /* Spațiere litere */
+  white-space: nowrap; /* Previne trecerea pe rândul următor a headerului */
+}
+
+/* Stiluri pentru celulele de date */
+.styled-table td {
+  padding: 0.8rem 1.25rem; /* Padding consistent */
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  vertical-align: middle; /* Aliniere verticală */
+}
+
+/* Elimină borderul ultimei linii */
+.styled-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Efect hover pe rândurile din tbody */
+.styled-table tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.03); /* O culoare subtilă la hover */
+}
+
+/* Aliniere specifică pentru coloane numerice */
+.styled-table .numeric-column {
+  text-align: right;
+}
+
+/* Stil pentru valoarea notei (poate fi adaptat) */
+.styled-table .grade-value {
+  font-weight: 500;
+  /* Dacă vrei să arate ca un badge, poți adăuga un span în interiorul <td> */
+  /* sau aplica stiluri directe, dar e mai puțin flexibil */
+  /* Exemplu cu span: <td><span class="grade-pill">{{ grade.value }}</span></td> */
+}
+
+/* Stiluri pentru sortare */
+.styled-table th.sortable {
+  cursor: pointer;
+  position: relative; /* Necesar pentru poziționarea iconiței */
+}
+
+.styled-table th.sortable:hover {
+  background-color: rgba(0, 0, 0, 0.05); /* Feedback la hover pe header sortabil */
+}
+
+.styled-table .sort-icon {
+  font-size: 1.1rem; /* Mărime iconiță */
+  vertical-align: middle;
+  margin-left: 0.3rem;
+  opacity: 0.6; /* Iconiță mai subtilă */
+  transition: opacity 0.2s ease;
+}
+
+.styled-table th.sortable:hover .sort-icon {
+  opacity: 1; /* Iconiță complet vizibilă la hover */
+}
+
+/* Mesaj pentru lipsa datelor */
+.no-data-message {
+  padding: 2rem;
+  text-align: center;
+  color: var(--muted-text-color, #6c757d);
+  font-style: italic;
+}
+
+/* --- Responsive Design pentru Tabel --- */
+@media (max-width: 768px) {
+  .grade-table-container {
+    border: none; /* Eliminăm borderul containerului */
+    background-color: transparent; /* Container transparent */
+    overflow-x: visible; /* Nu mai e nevoie de scroll orizontal */
   }
-  
+
   .styled-table {
-    width: 100%;
-    border-collapse: collapse; /* Elimină spațiile duble dintre celule */
-    font-size: 0.9em;
-    min-width: 400px; /* Lățime minimă */
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
-    border-radius: 8px;
-    overflow: hidden; /* Necesare pentru border-radius pe tabel */
+     /* Eliminăm borderul tabelului principal pe mobil */
+     border: none;
   }
-  
-  .styled-table thead tr {
-    background-color: #007bff; /* Fundal header */
-    color: #ffffff; /* Text header */
-    text-align: left;
+
+  /* Ascunde headerul tabelului */
+  .styled-table thead {
+    display: none;
   }
-  
-  .styled-table th,
-  .styled-table td {
-    padding: 12px 15px; /* Spațiere interioară celule */
-    border-bottom: 1px solid #dddddd; /* Linie subțire între rânduri */
-  }
-  
+
+  /* Transformă rândurile în carduri */
   .styled-table tbody tr {
-    background-color: #ffffff;
-    transition: background-color 0.2s ease; /* Efect hover */
+    display: block; /* Fiecare rând devine un bloc */
+    margin-bottom: 1rem; /* Spațiu între carduri */
+    border: 1px solid var(--border-color, #e0e0e0);
+    border-radius: var(--border-radius-small, 6px);
+    background-color: var(--background-color, #fff);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05); /* O umbră subtilă */
+    padding: 0.5rem; /* Puțin padding interior pentru card */
   }
-  
-  .styled-table tbody tr:hover {
-    background-color: #f1f1f1; /* Culoare fundal la hover */
+
+  /* Transformă celulele în blocuri stivuite */
+  .styled-table td {
+    display: flex; /* Folosim flex pentru alinierea label-valoare */
+    justify-content: space-between; /* Aliniază label stânga, valoare dreapta */
+    align-items: center; /* Aliniere verticală */
+    padding: 0.6rem 0.8rem; /* Padding ajustat */
+    border-bottom: 1px dashed var(--border-color-light, #f1f1f1); /* Linie fină între "câmpuri" */
+    text-align: right; /* Aliniază valoarea la dreapta */
+    width: 100%; /* Ocupă toată lățimea */
+    min-height: 30px; /* Înălțime minimă */
   }
-  
-  .styled-table tbody tr:last-of-type {
-    border-bottom: 2px solid #007bff; /* Linie mai groasă la final */
+
+  /* Elimină borderul ultimei celule din card */
+  .styled-table td:last-child {
+    border-bottom: none;
   }
-  
-  /* Stiluri pentru header sortabil */
-  .styled-table th.sortable {
-    cursor: pointer;
-    user-select: none; /* Previne selectarea textului la dublu click */
-    position: relative; /* Necesar pentru poziționarea iconiței */
+
+  /* Afișează eticheta folosind pseudo-elementul ::before */
+  .styled-table td::before {
+    content: attr(data-label); /* Preia textul din atributul data-label */
+    font-weight: bold;
+    color: var(--muted-text-color, #6c757d);
+    margin-right: 1rem; /* Spațiu între etichetă și valoare */
+    text-align: left; /* Aliniază eticheta la stânga */
+    flex-basis: 40%; /* Alocă spațiu pentru etichetă */
+    white-space: nowrap; /* Previne împărțirea etichetei pe mai multe rânduri */
   }
-  
-  .styled-table th.sortable:hover {
-      background-color: #0056b3; /* Culoare ușor diferită la hover pe header */
-  }
-  
-  .sort-icon {
-    font-size: 1.1em;
-    vertical-align: middle;
-    margin-left: 4px;
-    opacity: 0.7; /* Iconiță ușor transparentă */
-  }
-  
-  th:hover .sort-icon {
-      opacity: 1; /* Iconiță complet vizibilă la hover pe header */
-  }
-  
-  /* Aliniere pentru coloane numerice */
-  .numeric-column {
-    text-align: right;
-  }
-  
-  .grade-value {
-      font-weight: bold;
-      font-size: 1.05em;
-  }
-  
-  .no-data-message {
-    text-align: center;
-    color: #777;
-    padding: 20px;
-    background-color: #f9f9f9;
-    border-radius: 6px;
-    margin-top: 1em;
-  }
-  
-  /* Import Material Icons (asigură-te că e importat global sau aici) */
-  @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+
+}
+
+/* Ajustări fine pentru ecrane foarte mici (opțional) */
+@media (max-width: 480px) {
+   .styled-table td {
+       padding: 0.5rem 0.6rem;
+   }
+   .styled-table td::before {
+       flex-basis: 45%; /* Mai mult spațiu pentru label */
+       margin-right: 0.5rem;
+       font-size: 0.8rem; /* Font mai mic pentru label */
+   }
+   .styled-table td {
+       font-size: 0.85rem; /* Font mai mic pentru valoare */
+   }
+}
