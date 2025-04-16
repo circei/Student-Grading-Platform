@@ -1,0 +1,172 @@
+/* src/app/components/header/header.component.css */
+.app-header {
+    background-color: #0056b3; /* Albastru închis principal */
+    color: #ffffff;
+    padding: 0 25px; /* Spațiere stânga/dreapta */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    height: 60px; /* Înălțime fixă header */
+    display: flex;
+    align-items: center;
+    font-family: sans-serif;
+    position: sticky; /* Face header-ul "lipicios" */
+    top: 0;
+    z-index: 1000; /* Asigură că e deasupra altor elemente */
+  }
+  
+  .header-content {
+    display: flex;
+    justify-content: space-between; /* Distribuie elementele: logo | nav | actions */
+    align-items: center;
+    width: 100%;
+  }
+  
+  /* Logo și Titlu */
+  .logo-container {
+    display: flex;
+    align-items: center;
+    /* Adăugat pentru a asigura că nu e împins de navigație */
+    flex-shrink: 0;
+  }
+  
+  .logo-link {
+    display: inline-flex; /* Aliniază iconița și textul */
+    align-items: center;
+    text-decoration: none;
+    color: #ffffff;
+  }
+  
+  .logo-icon {
+    font-size: 28px; /* Mărime iconiță logo */
+    margin-right: 8px;
+  }
+  
+  .app-title {
+    font-size: 1.4em;
+    font-weight: bold;
+    letter-spacing: 0.5px;
+    white-space: nowrap; /* Previne împărțirea titlului */
+  }
+  
+  /* Navigație Principală */
+  .main-navigation {
+    flex-grow: 1; /* Ocupă spațiul disponibil */
+    text-align: center; /* Centrează linkurile */
+    overflow: hidden; /* Ascunde overflow dacă linkurile sunt prea multe */
+    margin: 0 20px; /* Adaugă spațiu între logo/acțiuni */
+  }
+  
+  .main-navigation ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: inline-flex; /* Linkuri pe aceeași linie */
+    gap: 15px; /* Spațiu redus între linkuri */
+    flex-wrap: nowrap; /* Previne trecerea pe rândul următor */
+  }
+  
+  .main-navigation a {
+    color: #e0e0e0; /* Culoare text link */
+    text-decoration: none;
+    font-size: 0.95em; /* Mărime font ușor redusă */
+    padding: 8px 10px; /* Spațiere clickabilă redusă */
+    border-radius: 4px;
+    transition: background-color 0.2s ease, color 0.2s ease;
+    white-space: nowrap; /* Previne împărțirea textului linkului */
+  }
+  
+  .main-navigation a:hover {
+    background-color: rgba(255, 255, 255, 0.1); /* Fundal subtil la hover */
+    color: #ffffff;
+  }
+  
+  .main-navigation a.active-link {
+    background-color: rgba(255, 255, 255, 0.2); /* Fundal mai vizibil pentru link activ */
+    color: #ffffff;
+    font-weight: 500;
+  }
+  
+  /* Acțiuni Utilizator */
+  .user-actions {
+    display: flex;
+    align-items: center;
+    flex-shrink: 0; /* Asigură că nu este comprimat */
+  }
+  
+  .user-info {
+      display: flex;
+      align-items: center;
+      gap: 12px; /* Spațiu redus între elementele user info */
+  }
+  
+  .welcome-message {
+      font-size: 0.9em;
+      white-space: nowrap;
+      color: #f0f0f0;
+      /* Ascunde pe ecrane foarte mici dacă e necesar */
+       @media (max-width: 900px) {
+          display: none;
+       }
+  }
+  
+  .profile-link {
+      color: #ffffff;
+      text-decoration: none;
+      display: inline-flex; /* Aliniază corect iconița */
+      align-items: center;
+      transition: opacity 0.2s ease;
+      padding: 4px; /* Mic padding pentru click */
+  }
+  .profile-link:hover {
+      opacity: 0.8;
+  }
+  
+  .profile-link .material-icons {
+      font-size: 28px; /* Mărime iconiță profil */
+  }
+  
+  .logout-button, .login-link {
+      background-color: transparent;
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.7); /* Bordură ușor transparentă */
+      border-radius: 4px;
+      padding: 6px 10px; /* Padding redus */
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px; /* Spațiu între iconiță și text */
+      font-size: 0.9em;
+      transition: background-color 0.2s ease, color 0.2s ease;
+      text-decoration: none; /* Pentru login-link */
+      white-space: nowrap;
+  }
+  
+  .logout-button:hover, .login-link:hover {
+      background-color: #ffffff;
+      color: #0056b3; /* Culoare text la hover */
+  }
+  
+  .logout-button .material-icons, .login-link .material-icons {
+      font-size: 18px; /* Mărime iconițe butoane */
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 768px) {
+    .logout-text {
+      display: none; /* Ascunde text logout */
+    }
+    .main-navigation {
+      display: none; /* Ascunde navigația principală (necesită meniu hamburger) */
+    }
+     .app-header {
+          padding: 0 15px;
+      }
+     .user-info {
+          gap: 8px;
+      }
+     .logout-button, .login-link {
+         padding: 5px 8px;
+     }
+  }
+  
+  /* Asigură-te că ai importat Material Icons global */
+  /* @import url('https://fonts.googleapis.com/icon?family=Material+Icons'); */
