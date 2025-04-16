@@ -150,6 +150,47 @@ export class AuthService implements OnDestroy {
         );
     }
 
+    /**
+     * Verifică dacă utilizatorul curent are cel puțin unul dintre rolurile specificate.
+     * Returnează un Observable<boolean>.
+     * @param allowedRoles Un array de roluri permise.
+     */
+    hasAnyRole(allowedRoles: Role[]): Observable<boolean> {
+        return this.currentUser$.pipe(
+            map(user => {
+                if (!user || !user.roles || user.roles.length === 0) {
+                    return false; // Nu e logat sau nu are roluri
+                }
+                // Verifică dacă cel puțin un rol permis se regăsește în rolurile utilizatorului
+                return allowedRoles.some(role => user.roles.includes(role));
+            })
+        );
+    }
+
+    /**
+     * Verifică sincron dacă utilizatorul curent are cel puțin unul dintre rolurile specificate.
+     * ATENȚIE: Folosește doar dacă ești sigur că starea AuthService este deja actualizată.
+     * @param allowedRoles Un array de roluri permise.
+     */
+    hasAnyRoleSync(allowedRoles: Role[]): boolean {
+        const user = this.currentUserSubject.value;
+        if (!user || !user.roles || user.roles.length === 0) {
+            return false;
+        }
+        return allowedRoles.some(role => user.roles.includes(role));
+    }
+
+    // Poți adăuga și verificări specifice dacă le folosești des
+    isTeacher(): Observable<boolean> {
+        return this.hasAnyRole([Role.Teacher]);
+    }
+    isStudent(): Observable<boolean> {
+        return this.hasAnyRole([Role.Student]);
+    }
+    isAdmin(): Observable<boolean> {
+        return this.hasAnyRole([Role.Admin]);
+    }
+
     // Helpers sincroni (utili uneori, dar folosește cu precauție starea curentă)
     getCurrentUserSnapshot(): AppUser | null { return this.currentUserSubject.value; }
     isLoggedInSnapshot(): boolean { return this.isLoggedInSubject.value; }
