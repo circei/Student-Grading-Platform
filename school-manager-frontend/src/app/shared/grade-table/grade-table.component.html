@@ -1,42 +1,42 @@
 <div class="grade-table-container">
-    @if (sortedGrades && sortedGrades.length > 0) {
-      <table class="styled-table">
-        <thead>
-          <tr>
-            @if (showStudentNameColumn) {
-              <th (click)="sortTable('studentName')" [class.sortable]="true">
-                Student
-                <span class="material-icons sort-icon">{{ getSortIcon('studentName') }}</span>
-              </th>
-            }
-            <th (click)="sortTable('course')" [class.sortable]="true">
-              Curs
-              <span class="material-icons sort-icon">{{ getSortIcon('course') }}</span>
+  @if (sortedGrades && sortedGrades.length > 0) {
+    <table class="styled-table">
+      <thead>
+        <tr>
+          @if (showStudentNameColumn) {
+            <th (click)="sortTable('studentName')" [class.sortable]="true">
+              Student
+              <span class="material-icons sort-icon">{{ getSortIcon('studentName') }}</span>
             </th>
-            <th (click)="sortTable('date')" [class.sortable]="true">
-              Data
-               <span class="material-icons sort-icon">{{ getSortIcon('date') }}</span>
-            </th>
-            <th (click)="sortTable('value')" [class.sortable]="true" class="numeric-column">
-              Nota
-               <span class="material-icons sort-icon">{{ getSortIcon('value') }}</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (grade of sortedGrades; track grade.id) {
-            <tr>
-               @if (showStudentNameColumn) {
-                <td>{{ grade.studentName || '-' }}</td>
-              }
-               <td>{{ grade.course }}</td>
-               <td>{{ grade.date | date:'dd.MM.yyyy' }}</td>
-               <td class="numeric-column grade-value">{{ grade.value }}</td>
-            </tr>
           }
-        </tbody>
-      </table>
-    } @else {
-      <p class="no-data-message">{{ noGradesMessage }}</p>
-    }
-  </div>
+          <th (click)="sortTable('course')" [class.sortable]="true">
+            Curs
+            <span class="material-icons sort-icon">{{ getSortIcon('course') }}</span>
+          </th>
+          <th (click)="sortTable('date')" [class.sortable]="true">
+            Data
+             <span class="material-icons sort-icon">{{ getSortIcon('date') }}</span>
+          </th>
+          <th (click)="sortTable('value')" [class.sortable]="true" class="numeric-column">
+            Nota
+             <span class="material-icons sort-icon">{{ getSortIcon('value') }}</span>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (grade of sortedGrades; track grade.id) {
+          <tr>
+             @if (showStudentNameColumn) {
+               <td data-label="Student">{{ grade.studentName || '-' }}</td>
+             }
+             <td data-label="Curs">{{ grade.course }}</td>
+             <td data-label="Data">{{ grade.date | date:'dd.MM.yyyy' }}</td>
+             <td data-label="Nota" class="numeric-column grade-value">{{ grade.value }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  } @else {
+    <p class="no-data-message">{{ noGradesMessage }}</p>
+  }
+</div>

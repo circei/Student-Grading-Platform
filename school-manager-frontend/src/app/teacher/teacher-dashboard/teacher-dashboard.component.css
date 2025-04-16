@@ -1,259 +1,451 @@
 /* teacher-dashboard.component.css */
+
+/* Container principal și header */
 .dashboard-container {
-    padding: 2rem;
-    max-width: 1440px;
-    margin: 0 auto;
-  }
-  
-  .dashboard-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-    gap: 1rem;
-  }
-  
-  .notification-icon {
-    position: relative;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-  }
-  
-  /* Folosim clasa badge existentă din global styles */
-  .notification-icon .badge {
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    background: var(--danger-color);
-  }
-  
-  .dashboard-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
-  }
-  
-  /* Folosim clasa card existentă din global styles */
-  .classes-section .class-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-  
-  .class-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem;
-    border: 1px solid var(--background-alt-color);
-    border-radius: var(--border-radius);
-    background: var(--background-color);
-  }
-  
-  .class-info h3 {
-    margin: 0 0 0.5rem 0;
-    color: var(--text-color);
-  }
-  
-  .class-info p {
-    margin: 0;
-    color: var(--muted-text-color);
-    font-size: 0.9rem;
-  }
-  
-  .quick-actions .action-buttons {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1rem;
-  }
-  
-  /* Adaptăm butoanele secundare la sistemul existent */
-  .btn-secondary {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 1.5rem 0.5rem;
-  }
-  
-  .btn-secondary .material-icons {
-    font-size: 2rem;
-    margin-bottom: 0.5rem;
-  }
-  
-  .grades-table {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0.5rem;
-  }
-  
-  .table-header {
-    font-weight: bold;
-    padding: 1rem 0;
-    border-bottom: 2px solid var(--background-alt-color);
-    color: var(--text-color);
-  }
-  
-  .table-row {
-    display: contents;
-    padding: 0.8rem 0;
-    align-items: center;
-  }
-  
-  .table-row > span {
-    padding: 0.8rem 0;
-    border-bottom: 1px solid var(--background-alt-color);
-    display: flex;
-    align-items: center;
-  }
-  
-  .grade-badge {
-    background: var(--primary-color);
-    color: white;
-    padding: 0.3rem 0.6rem;
-    border-radius: 15px;
-    font-size: 0.9rem;
-    width: fit-content;
-  }
-  
-  /* Responsive Design */
-  @media (max-width: 768px) {
-    .dashboard-grid {
-      grid-template-columns: 1fr;
-    }
-    
-    .grades-table {
-      grid-template-columns: 1fr;
-    }
-  
-    .table-header {
-      display: none;
-    }
-  
-    .table-row {
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      padding: 1rem;
-      border-bottom: 1px solid var(--background-alt-color);
-    }
-  
-    .table-row > span::before {
-      content: attr(data-label);
-      font-weight: bold;
-      color: var(--muted-text-color);
-      margin-right: 0.5rem;
-    }
-  }
-  
-  /* Animări consistente cu sistemul existent */
-  button {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-  }
-  
-  button:active {
-    transform: scale(0.98);
-  }
-  
-  .card {
-    transition: box-shadow 0.3s ease;
-  }
-  
-  .card:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 2rem;
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  gap: 1rem;
+  /* Adăugat pentru a permite împachetarea pe ecrane foarte mici */
+  flex-wrap: wrap;
+}
+
+/* Iconiță de notificare */
+.notification-icon {
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+/* Folosim clasa badge existentă din global styles */
+.notification-icon .badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: var(--danger-color);
+  /* Asigură-te că badge-ul are și color: var(--white-color); sau similar în global styles */
+}
+
+/* Grilă principală a dashboard-ului */
+.dashboard-grid {
+  display: grid;
+  /* Consideră un minmax mai mic dacă 300px e prea lat pe unele mobile */
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Secțiunea clase - Folosim clasa card existentă */
+.classes-section .class-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.class-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid var(--background-alt-color);
+  border-radius: var(--border-radius);
+  background: var(--background-color);
+  flex-wrap: wrap; /* Permite împachetarea butoanelor pe ecrane mici */
+  gap: 0.5rem; /* Spațiu între info și buton dacă se împachetează */
+}
+
+.class-info h3 {
+  margin: 0 0 0.5rem 0;
+  color: var(--text-color);
+}
+
+.class-info p {
+  margin: 0;
+  color: var(--muted-text-color);
+  font-size: 0.9rem;
+}
+
+/* Acțiuni rapide - Folosim clasa card existentă */
+.quick-actions .action-buttons {
+  display: grid;
+  /* Consideră un minmax mai mic dacă 150px e prea lat pe unele mobile */
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+}
+
+/* Butoane secundare adaptate */
+.btn-secondary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center; /* Asigură alinierea textului */
+  gap: 0.5rem;
+  padding: 1.5rem 0.5rem;
+  /* Asigură-te că ai stiluri globale pentru .btn-secondary (background, border, color, etc.) */
+}
+
+.btn-secondary .material-icons {
+  font-size: 2rem;
+  /* margin-bottom a fost înlocuit de gap */
+}
+
+/* Tabelul de note (varianta 1 - din prima parte a CSS-ului) */
+.grades-table {
+  display: grid;
+  /* Definim explicit coloanele pentru lizibilitate */
+  grid-template-columns: 2fr 1fr 1fr 1fr; /* Exemplu: Nume, Data, Materie, Nota */
+  gap: 0.5rem 1rem; /* Spațiu vertical și orizontal */
+  width: 100%; /* Ocupă lățimea containerului */
+}
+
+.table-header {
+  font-weight: bold;
+  padding: 1rem 0;
+  border-bottom: 2px solid var(--background-alt-color);
+  color: var(--text-color);
+  text-align: left; /* Aliniere standard pentru headere */
+}
+
+/* Folosim display: contents pentru a permite elementelor span să se alinieze la grid */
+.table-row {
+  display: contents;
+}
+
+.table-row > span {
+  padding: 0.8rem 0;
+  border-bottom: 1px solid var(--background-alt-color);
+  display: flex;
+  align-items: center;
+  color: var(--text-color); /* Culoare default pentru text */
+  /* Eliminăm stilurile specifice mobile de aici */
+}
+
+.grade-badge {
+  background: var(--primary-color);
+  color: white;
+  padding: 0.3rem 0.6rem;
+  border-radius: 15px;
+  font-size: 0.9rem;
+  width: fit-content;
+  font-weight: 500; /* Adăugat pentru lizibilitate */
+}
+
+/* Stiluri generale (posibil din global styles) */
+.card {
+  background: var(--background-color);
+  border-radius: var(--border-radius);
+  padding: 1.5rem; /* Adăugat padding default pentru carduri */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: box-shadow 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Animări butoane */
+button {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, opacity 0.2s ease;
+  cursor: pointer;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap; /* Permite împachetarea pe ecrane mici */
+  gap: 0.5rem;
+}
+
+.section-header h2 { /* Asigură-te că titlul are stiluri potrivite */
+  margin: 0;
+  color: var(--text-color);
+  font-size: 1.5rem; /* Exemplu */
+}
+
+.link-button {
+  display: inline-flex; /* Folosim inline-flex pentru aliniere corectă */
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: 500; /* Text mai vizibil */
+  transition: opacity 0.2s;
+  background: none; /* Elimină stiluri default de buton */
+  border: none; /* Elimină stiluri default de buton */
+  padding: 0; /* Elimină stiluri default de buton */
+  cursor: pointer;
+}
+
+.link-button .material-icons { /* Stil specific pentru icon */
+  font-size: 1.2rem; /* Ajustează mărimea iconului */
+}
+
+.link-button:hover {
+  opacity: 0.8;
+  text-decoration: underline; /* Feedback vizual la hover */
+}
+
+/* Container tabel note recente */
+.grades-container {
+  border: 1px solid var(--background-alt-color); /* Folosim variabilă */
+  border-radius: var(--border-radius); /* Folosim variabilă */
+  overflow: hidden;
+  background-color: var(--background-color); /* Fundal consistent */
+}
+
+/* Layout grid pentru tabelul de note recente */
+.grades-grid-layout { /* Redenumit pentru claritate vs .dashboard-grid */
+  display: grid;
+  /* Coloane: Avatar+Nume, Materie, Data, Nota */
+  grid-template-columns: 2fr 1.5fr 1.5fr 1fr;
+  align-items: center;
+  gap: 0 1rem; /* Doar spațiu orizontal între coloane */
+  width: 100%;
+}
+
+/* Header specific tabelului de note recente */
+.grades-header {
+  display: contents; /* Headerul participă la grid */
+}
+
+.grades-header span {
+  padding: 1rem 1.5rem; /* Padding consistent */
+  background-color: var(--background-alt-color); /* Fundal distinct */
+  font-weight: 600;
+  color: var(--muted-text-color); /* Culoare distinctă */
+  text-align: left;
+  border-bottom: 1px solid var(--border-color, #eee); /* Linie separatoare */
+}
+
+/* Rând (item) în tabelul de note recente */
+.grade-item {
+  display: contents; /* Itemul participă la grid */
+  border-bottom: 1px solid var(--background-alt-color); /* Linie separatoare fină */
+  transition: background-color 0.2s;
+}
+
+.grade-item:last-child {
+  border-bottom: none; /* Elimină borderul la ultimul element */
+}
+
+.grade-item > div { /* Aplicăm padding și aliniere celulelor (div-uri) */
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  min-height: 50px; /* Înălțime minimă pentru consistență */
+  /* Adaugă data-label aici în HTML! Ex: <div data-label="Student">...</div> */
+}
+
+/* Elementele specifice din celule */
+.student-info { /* Clasă specifică pentru celula cu avatar și nume */
+ /* display: flex; align-items: center; - mutat în .grade-item > div */
+ gap: 0.75rem; /* Spațiu între avatar și nume */
+}
+
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0; /* Previne micșorarea avatarului */
+}
+
+/* Redenumit pentru a nu se confunda cu .grade-badge */
+.grade-pill {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  background-color: var(--primary-color);
+  color: white;
+  font-weight: 500;
+  font-size: 0.85rem; /* Puțin mai mic */
+  text-align: center;
+  min-width: 30px; /* Lățime minimă */
+}
+
+.grade-date, .grade-subject { /* Clase pentru celelalte celule */
+  color: var(--muted-text-color);
+  font-size: 0.9rem;
+}
+
+/* --- Responsive Design --- */
+
+@media (max-width: 768px) {
+  /* Ajustări generale pentru tabletă/mobil */
+  .dashboard-container {
+      padding: 1rem; /* Padding redus */
   }
 
-  /* Layout general */
-.recent-grades {
-    padding: 1.5rem;
+  .dashboard-header h1 { /* Presupunând că ai un H1 */
+      font-size: 1.5rem; /* Mărime font redusă */
   }
-  
-  .section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
+
+  .dashboard-grid {
+      grid-template-columns: 1fr; /* O singură coloană */
+      gap: 1rem; /* Spațiu redus */
   }
-  
-  .link-button {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: var(--primary-color);
-    text-decoration: none;
-    transition: opacity 0.2s;
+
+  .class-item {
+      flex-direction: column; /* Stivuire elemente clasă */
+      align-items: stretch; /* Aliniere pe lățime */
+      gap: 1rem;
   }
-  
-  .link-button:hover {
-    opacity: 0.8;
+
+  .quick-actions .action-buttons {
+       /* auto-fit funcționează bine, dar putem forța 2 coloane dacă dorim */
+      /* grid-template-columns: repeat(2, 1fr); */
+      gap: 0.8rem;
   }
-  
-  /* Tabel */
-  .grades-container {
-    border: 1px solid #eee;
-    border-radius: 8px;
-    overflow: hidden;
+
+  .btn-secondary {
+      padding: 1rem 0.5rem; /* Padding redus */
   }
-  
-  .grid-layout {
-    display: grid;
-    grid-template-columns: 2fr 1fr 2fr 1fr;
-    align-items: center;
-    padding: 1rem 1.5rem;
+
+  /* --- Responsive pentru Tabelul de note (varianta 1) --- */
+  .grades-table {
+      grid-template-columns: 1fr; /* Forțează o singură coloană */
+      gap: 0; /* Eliminăm gap-ul gridului */
   }
-  
+
+  .table-header {
+      display: none; /* Ascunde headerul clasic */
+  }
+
+  .table-row {
+      display: block; /* Trecem de la 'contents' la 'block' pentru a forma carduri */
+      border: 1px solid var(--background-alt-color);
+      border-radius: var(--border-radius-small, 4px); /* Un border-radius mai mic */
+      margin-bottom: 1rem;
+      padding: 1rem;
+      background-color: var(--background-color);
+  }
+
+   .table-row:last-of-type { /* Nu ultimul copil, ci ultimul de tip .table-row */
+       margin-bottom: 0;
+   }
+
+  .table-row > span {
+      display: flex; /* Folosim flex pentru aliniere label-valoare */
+      justify-content: space-between; /* Aliniază label la stânga, valoare la dreapta */
+      align-items: center;
+      padding: 0.5rem 0; /* Padding vertical redus */
+      border-bottom: none; /* Eliminăm borderul dintre "celule" */
+      width: 100%; /* Ocupă toată lățimea */
+  }
+
+   .table-row > span:last-child {
+       padding-bottom: 0; /* Elimină paddingul ultimului element */
+   }
+
+  .table-row > span::before {
+      content: attr(data-label); /* Afișează eticheta din atributul data-label */
+      font-weight: bold;
+      color: var(--muted-text-color);
+      margin-right: 1rem; /* Spațiu între etichetă și valoare */
+      flex-basis: 40%; /* Alocă spațiu pentru etichetă */
+      text-align: left;
+  }
+
+  /* --- Responsive pentru Tabelul de note recente (varianta 2) --- */
+  .grades-grid-layout {
+      grid-template-columns: 1fr; /* O singură coloană */
+      gap: 0; /* Eliminăm gap-ul gridului */
+  }
+
   .grades-header {
-    background-color: #f8f9fa;
-    border-bottom: 1px solid #eee;
-    font-weight: 600;
+      display: none; /* Ascunde headerul */
   }
-  
+
   .grade-item {
-    transition: background-color 0.2s;
-    border-bottom: 1px solid #f8f9fa;
+      display: block; /* Trecem de la 'contents' la 'block' pentru a forma carduri */
+      border: none; /* Eliminăm borderul default */
+      border-bottom: 1px solid var(--background-alt-color); /* Păstrăm separator între carduri */
+      padding: 1rem 1.5rem; /* Padding aplicat pe card */
+      transition: background-color 0.2s;
   }
-  
+   .grade-item:last-child {
+       border-bottom: none;
+   }
+
   .grade-item:hover {
-    background-color: #f8f9fa;
+      background-color: rgba(0, 0, 0, 0.02); /* Hover pe tot cardul */
   }
-  
-  .grade-item:last-child {
-    border-bottom: none;
+
+  .grade-item > div {
+      display: flex;
+      justify-content: space-between; /* Aliniază label stânga, valoare dreapta */
+      align-items: center;
+      padding: 0.5rem 0; /* Padding vertical redus în interiorul cardului */
+      min-height: auto; /* Resetăm min-height */
   }
-  
-  /* Elemente specifice */
-  .avatar {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    margin-right: 0.75rem;
-    object-fit: cover;
+
+  .grade-item > div::before {
+      content: attr(data-label); /* Afișează eticheta din atributul data-label */
+      font-weight: bold;
+      color: var(--muted-text-color);
+      margin-right: 1rem; /* Spațiu între etichetă și valoare */
+      flex-basis: 35%; /* Alocă spațiu pentru etichetă */
+      text-align: left;
   }
-  
-  .grade-pill {
-    display: inline-block;
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    background-color: var(--primary-color);
-    color: white;
-    font-weight: 500;
+
+   /* Ajustări specifice pentru celulele din recent-grades pe mobil */
+   .grade-item .student-info {
+       gap: 0.5rem; /* Spațiu redus */
+   }
+   .grade-item .avatar {
+       width: 24px;
+       height: 24px;
+   }
+
+   .grade-item .grade-date,
+   .grade-item .grade-subject {
+       font-size: 0.85rem; /* Font puțin mai mic */
+       text-align: right; /* Aliniază textul la dreapta, opus etichetei */
+       flex-grow: 1; /* Permite textului să ocupe spațiul rămas */
+   }
+}
+
+/* Media query suplimentar pentru ecrane foarte mici (opțional) */
+@media (max-width: 480px) {
+  .dashboard-container {
+      padding: 0.8rem;
   }
-  
-  /* Responsive */
-  @media (max-width: 768px) {
-    .grid-layout {
+
+
+  .quick-actions .action-buttons {
+      /* Forțăm o singură coloană pentru butoanele de acțiuni */
       grid-template-columns: 1fr;
-      gap: 0.5rem;
-      padding: 1rem;
-    }
-  
-    .grades-header {
-      display: none;
-    }
-  
-    .grade-item {
-      padding: 1rem;
-      border-bottom: 1px solid #eee;
-    }
   }
+
+  .btn-secondary {
+      padding: 1rem; /* Padding uniform */
+      flex-direction: row; /* Iconiță și text pe aceeași linie */
+      justify-content: center;
+  }
+  .btn-secondary .material-icons {
+      font-size: 1.5rem; /* Iconiță mai mică */
+      margin-bottom: 0; /* Eliminat margin, folosim gap */
+      margin-right: 0.5rem; /* Adăugăm spațiu la dreapta */
+  }
+
+  /* Ajustare etichete tabel pentru spațiu redus */
+  .table-row > span::before,
+  .grade-item > div::before {
+       flex-basis: 50%; /* Dăm mai mult spațiu etichetei */
+       margin-right: 0.5rem; /* Reducem spațiul */
+       font-size: 0.8rem; /* Micșorăm fontul etichetei */
+  }
+}
