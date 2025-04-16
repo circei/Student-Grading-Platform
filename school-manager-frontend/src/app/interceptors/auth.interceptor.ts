@@ -1,47 +1,44 @@
 // src/app/interceptors/auth.interceptor.ts
 import { Injectable, inject } from '@angular/core';
-import { HttpEvent, HttpInterceptor, HttpHandler, HttpRequest } from '@angular/common/http';
+import { HttpEvent, HttpInterceptor, HttpHandler, HttpRequest, HttpErrorResponse } from '@angular/common/http';
 import { Observable, from, throwError } from 'rxjs';
 import { switchMap, catchError } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service'; // Importă serviciul actualizat
 import { environment } from '../../environments/environment';
+import { Router } from '@angular/router'; // Importă Router
 
 @Injectable()
 export class AuthInterceptor implements HttpInterceptor {
   private authService = inject(AuthService);
-  private apiUrl = environment.apiUrl; // Preia URL-ul API din environment
+  private router = inject(Router); // Injectează Router
+  private apiUrl = environment.apiUrl;
 
   intercept(req: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    // Verifică dacă cererea este către API-ul tău
+    // Interceptează doar cererile către API-ul tău
     if (req.url.startsWith(this.apiUrl)) {
-      // Obține token-ul în mod asincron
       return this.authService.getCurrentUserIdToken().pipe(
         switchMap(token => {
           if (token) {
-            // Clonează cererea și adaugă header-ul Authorization
-            const authReq = req.clone({
-              setHeaders: { Authorization: `Bearer ${token}` }
-            });
-            // Trimite cererea modificată
+            const authReq = req.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
             return next.handle(authReq);
-          } else {
-            // Dacă nu există token (utilizatorul nu e logat), trimite cererea originală
-            // Backend-ul ar trebui să returneze 401 Unauthorized pentru rutele protejate
-            console.warn('AuthInterceptor: No token found, sending original request to API.');
-            return next.handle(req);
           }
+          // Dacă nu e token, trimite cererea originală. Backend-ul va da 401 dacă ruta e protejată.
+          return next.handle(req);
         }),
-        catchError(error => {
-           // Poți adăuga aici logică globală de gestionare a erorilor de autentificare (ex: 401/403)
-           console.error('AuthInterceptor Error:', error);
+        catchError((error: HttpErrorResponse) => {
+           // Gestionează global erorile 401/403 de la API
            if (error.status === 401 || error.status === 403) {
-               this.authService.logout(); // Fii atent la bucle infinite dacă logout-ul face și el un request
+             console.error(`AuthInterceptor: ${error.status} error from API, logging out.`);
+             // Deloghează utilizatorul și redirecționează la login
+             // Folosește un mic delay sau o altă strategie dacă logout face și el un request
+             // pentru a evita potențiale bucle în cazuri rare.
+             this.authService.logout().subscribe(); // Nu ne pasă de rezultat aici neapărat
            }
-           return throwError(() => error);
+           return throwError(() => error); // Retransmite eroarea
         })
       );
     } else {
-      // Dacă cererea nu este către API-ul tău, trimite-o nemodificată
+      // Lasă celelalte cereri (ex: către alte domenii) să treacă nemodificate
       return next.handle(req);
     }
   }

@@ -1,0 +1,55 @@
+<div class="signup-container">
+    <h2>Înregistrare Cont Nou</h2>
+  
+    @if (successMessage) {
+       <div class="success-message">{{ successMessage }}</div>
+    }
+  
+    <form [formGroup]="signupForm" (ngSubmit)="onSubmit()" [hidden]="successMessage">
+      <div class="form-group">
+        <label for="email">Email:</label>
+        <input type="email" id="email" formControlName="email" placeholder="nume@exemplu.com" required>
+        @if (signupForm.controls.email.invalid && (signupForm.controls.email.dirty || signupForm.controls.email.touched)) {
+           <div class="error-message">
+              @if (signupForm.controls.email.errors?.['required']) { Email este obligatoriu. }
+              @if (signupForm.controls.email.errors?.['email']) { Email invalid. }
+           </div>
+        }
+      </div>
+  
+      <div class="form-group">
+        <label for="password">Parolă:</label>
+        <input type="password" id="password" formControlName="password" required>
+         @if (signupForm.controls.password.invalid && (signupForm.controls.password.dirty || signupForm.controls.password.touched)) {
+           <div class="error-message">
+              @if (signupForm.controls.password.errors?.['required']) { Parola este obligatorie. }
+              @if (signupForm.controls.password.errors?.['minlength']) { Parola trebuie să aibă minim 6 caractere. }
+           </div>
+        }
+      </div>
+  
+      <div class="form-group">
+        <label for="confirmPassword">Confirmă Parola:</label>
+        <input type="password" id="confirmPassword" formControlName="confirmPassword" required>
+         @if (signupForm.controls.confirmPassword.invalid && (signupForm.controls.confirmPassword.dirty || signupForm.controls.confirmPassword.touched)) {
+           <div class="error-message"> Confirmarea parolei este obligatorie. </div>
+         }
+         @if (signupForm.errors?.['passwordsMismatch'] && signupForm.controls.confirmPassword.dirty) {
+             <div class="error-message"> Parolele nu se potrivesc. </div>
+         }
+      </div>
+  
+  
+      @if (errorMessage) {
+        <div class="error-message server-error">{{ errorMessage }}</div>
+      }
+  
+      <button type="submit" [disabled]="signupForm.invalid || isLoading">
+        {{ isLoading ? 'Se încarcă...' : 'Înregistrare' }}
+      </button>
+  
+       <p class="login-link">
+          Ai deja cont? <a routerLink="/login">Autentifică-te aici</a>
+       </p>
+    </form>
+  </div>

@@ -1,25 +1,56 @@
 import { Routes } from '@angular/router';
-import { AuthComponent } from './auth/auth.component';
-import { ForgotPasswordComponent } from './auth/forgot-password/forgot-password.component';
-import { AdminComponent } from './admin/admin.component';
-import { TeacherDashboardComponent } from './teacher/teacher-dashboard/teacher-dashboard.component';
-import { ClassManagementComponent } from './teacher/class-management/class-management.component';
-import { GradeManagementComponent } from './teacher/grade-management/grade-management.component';
-import { StudentDashboardComponent } from './student/student-dashboard/student-dashboard.component';
-import { GradeViewComponent } from './student/grade-view/grade-view.component';
-import { ProgressViewComponent } from './student/progress-view/progress-view.component';
-import { ProfileComponent } from './shared/profile/profile.component';
+import { LoginComponent } from './auth/login/login.component';
+import { authGuard } from './guards/auth.guard';
+import { SignupComponent } from './auth/signup/signup.component';
 
 export const routes: Routes = [
-  { path: '', redirectTo: 'profile', pathMatch: 'full' },
-  { path: 'auth', component: AuthComponent },
-  { path: 'forgot-password', component: ForgotPasswordComponent },
-  { path: 'admin', component: AdminComponent },
-  { path: 'teacher-dashborad', component: TeacherDashboardComponent },
-  { path: 'class-management', component: ClassManagementComponent },
-  { path: 'grade-management', component: GradeManagementComponent },
-  { path: 'student-dashboard', component: StudentDashboardComponent },
-  { path: 'grade-view', component: GradeViewComponent },
-  { path: 'progress-view', component: ProgressViewComponent },
-  { path: 'profile', component: ProfileComponent }, 
+  { path: 'login', component: LoginComponent },
+  { path: 'signup', component: SignupComponent }, // Adaugă ruta de signup
+
+  // Rute protejate
+  {
+    path: 'dashboard',
+    // component: StudentDashboardComponent, // Sau TeacherDashboardComponent, sau un wrapper
+    loadComponent: () => import('./student/student-dashboard/student-dashboard.component').then(m => m.StudentDashboardComponent), // Exemplu lazy loading
+    canActivate: [authGuard]
+  },
+   {
+     path: 'profile',
+     loadComponent: () => import('./shared/profile/profile.component').then(m => m.ProfileComponent),
+     canActivate: [authGuard]
+   },
+
+  {
+    path: 'grade-view',
+    loadComponent: () => import('./student/grade-view/grade-view.component').then(m => m.GradeViewComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'progress-view',
+    loadComponent: () => import('./student/progress-view/progress-view.component').then(m => m.ProgressViewComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'grade-management',
+    loadComponent: () => import('./teacher/grade-management/grade-management.component').then(m => m.GradeManagementComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'class-management',
+    loadComponent: () => import('./teacher/class-management/class-management.component').then(m => m.ClassManagementComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'teacher-dashboard',
+    loadComponent: () => import('./teacher/teacher-dashboard/teacher-dashboard.component').then(m => m.TeacherDashboardComponent),
+    canActivate: [authGuard]
+  },
+  {
+    path: 'admin',
+    loadComponent: () => import('./admin/admin.component').then(m => m.AdminComponent),
+    canActivate: [authGuard]
+  },
+  // Redirecționări
+  { path: '', redirectTo: '/dashboard', pathMatch: 'full' }, // Pagina principală (va fi protejată de guard)
+  { path: '**', redirectTo: '/dashboard' } // Sau o pagină 404
 ];
