@@ -5,5 +5,7 @@ export const environment = {
     storageBucket: "school-grading-a04fe.firebasestorage.app",
     messagingSenderId: "803704097976",
     appId: "1:803704097976:web:a20320443de043bb3c784d",
-    measurementId: "G-Z7Q6DSLP3W"
+    measurementId: "G-Z7Q6DSLP3W",
+    apiUrl: "https://localhost" // Added API URL for the application
   };
+

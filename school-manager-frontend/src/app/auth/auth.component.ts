@@ -1,7 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { FormsModule, NgForm } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { AuthService } from './auth.service';
+import { AuthService } from '../services/auth.service';
 import { Router } from '@angular/router';
 @Component({
   selector: 'app-auth',
@@ -37,7 +37,7 @@ export class AuthComponent {
 
     if (this.isLoginMode) {
       this.isLoading = true;
-      this.authService.login(email, password).subscribe({
+      this.authService.login(email).subscribe({
         next: (resData) => {
           console.log('Logged in:', resData);
           this.isLoading = false;
@@ -61,7 +61,7 @@ export class AuthComponent {
         return;
       }
       this.isLoading = true;
-      this.authService.signup(email, password).subscribe({
+      this.authService.signup(email).subscribe({
         next: (resData) => {
           console.log(resData);
           this.isLoading = false;
