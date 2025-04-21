@@ -77,5 +77,19 @@ class StudentCourse(Base):
     # Track who added the student for audit purposes
     added_by = Column(String, nullable=True)
 
+class ActivityLog(Base):
+    __tablename__ = "activity_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, nullable=True)  # Firebase UID or username
+    user_email = Column(String, nullable=True)  # User's email if available
+    timestamp = Column(String, default=datetime.now().isoformat())
+    action = Column(String, nullable=False)  # login, view, create, update, delete, etc.
+    resource_type = Column(String, nullable=True)  # grade, course, student, etc.
+    resource_id = Column(String, nullable=True)  # ID of the resource being acted upon
+    details = Column(String, nullable=True)  # Additional JSON details
+    ip_address = Column(String, nullable=True)
+    user_agent = Column(String, nullable=True)
+    status_code = Column(Integer, nullable=True)  # HTTP status code for API requests
+
 def init_db():
     Base.metadata.create_all(bind=engine)
