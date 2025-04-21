@@ -4,6 +4,7 @@ from pydantic import BaseModel, EmailStr, validator, Field
 import re
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
+from requests import request
 from sqlalchemy.orm import Session
 from typing import Any, List
 from app.crud import calculate_course_averages, calculate_student_averages, create_grade, get_grades_by_student, update_grade, delete_grade, bulk_create_grades
@@ -33,6 +34,14 @@ from app.crud import (
     get_students_in_course, get_courses_for_student
 )
 from app.database import Course, StudentCourse
+
+import time
+from fastapi import Request
+from starlette.middleware.base import BaseHTTPMiddleware
+from app.logging_utils import log_activity, get_request_ip
+
+from app.logging_utils import get_logs
+from app.database import ActivityLog
 
 DATABASE_URL = "sqlite:///app.db"  # Update with your actual database URL
 
@@ -113,10 +122,87 @@ firebase_admin.initialize_app(cred)
 # ----------------------------
 # FastAPI App and Database Setup
 # ----------------------------
+
+class ActivityLoggingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        # Skip logging for some paths like health checks
+        if request.url.path in ["/docs", "/redoc", "/openapi.json", "/favicon.ico"]:
+            return await call_next(request)
+        
+        # Get the start time
+        start_time = time.time()
+        
+        # Get request details
+        method = request.method
+        path = request.url.path
+        ip_address = get_request_ip(request)
+        user_agent = request.headers.get("user-agent")
+        
+        # Extract user from authorization header if present
+        user_id = None
+        user_email = None
+        if "authorization" in request.headers:
+            token = request.headers["authorization"].split(" ")[-1]
+            if token == "test-token":  # Handle test token
+                user_id = "test-user-id"
+                user_email = "test@example.com"
+            else:
+                try:
+                    from firebase_admin import auth
+                    decoded_token = auth.verify_id_token(token)
+                    user_id = decoded_token.get("uid")
+                    user_email = decoded_token.get("email")
+                except:
+                    pass  # Token verification failed, continue without user info
+        
+        # Process the request
+        response = await call_next(request)
+        
+        # Calculate processing time
+        processing_time = time.time() - start_time
+        
+        # Log the activity asynchronously to avoid blocking
+        try:
+            # Get a new DB session (middleware can't use the dependency injection)
+            from app.main import SessionLocal
+            db = SessionLocal()
+            
+            resource_parts = path.strip("/").split("/")
+            resource_type = resource_parts[0] if len(resource_parts) > 0 else None
+            resource_id = resource_parts[1] if len(resource_parts) > 1 else None
+            
+            # Log the request
+            log_activity(
+                db=db,
+                action=f"{method}:{path}",
+                user_id=user_id,
+                user_email=user_email,
+                resource_type=resource_type,
+                resource_id=resource_id,
+                details={
+                    "processing_time_ms": round(processing_time * 1000, 2),
+                    "query_params": str(request.query_params),
+                },
+                ip_address=ip_address,
+                user_agent=user_agent,
+                status_code=response.status_code
+            )
+            
+        except Exception as e:
+            # Log errors but don't break the response flow
+            print(f"Error logging activity: {str(e)}")
+        finally:
+            if 'db' in locals():
+                db.close()
+        
+        return response
+
 app = FastAPI()
 
 # After creating the app instance
 app = FastAPI()
+
+app.add_middleware(ActivityLoggingMiddleware)
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
@@ -288,6 +374,29 @@ class Student(BaseModel):
     class Config:
         orm_mode = True
 
+class ActivityLogResponse(BaseModel):
+    id: int
+    user_id: Optional[str]
+    user_email: Optional[str]
+    timestamp: str
+    action: str
+    resource_type: Optional[str]
+    resource_id: Optional[str]
+    details: Optional[str]
+    ip_address: Optional[str]
+    status_code: Optional[int]
+
+    class Config:
+        orm_mode = True
+        from_attributes = True
+
+class LogsResponse(BaseModel):
+    items: List[ActivityLogResponse]
+    total: int
+    page: int
+    pages: int
+    limit: int
+
 # ----------------------------
 # Database Dependency
 # ----------------------------
@@ -373,12 +482,66 @@ def require_roles(required_roles: List[str]):
     return role_checker
 
 @app.post("/backup", response_model=dict)
-def manual_backup(db_url: str = DATABASE_URL):
+def manual_backup(
+    db_url: str = DATABASE_URL,
+    request: Request = None,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(["admin"]))
+):
     """Manually trigger a database backup."""
+    user_identifier = current_user.get("email", current_user.get("uid", "unknown"))
+    
     try:
+        # Log backup attempt
+        log_activity(
+            db=db,
+            action="backup_start",
+            user_id=current_user.get("uid"),
+            user_email=user_identifier,
+            resource_type="database",
+            details={
+                "manual_trigger": True
+            },
+            ip_address=get_request_ip(request) if request else None,
+            user_agent=request.headers.get("user-agent") if request else None,
+            status_code=202  # Accepted, processing
+        )
+        
         backup_file = create_backup(db_url)
+        
+        # Log successful backup
+        log_activity(
+            db=db,
+            action="backup_complete",
+            user_id=current_user.get("uid"),
+            user_email=user_identifier,
+            resource_type="database",
+            details={
+                "backup_file": backup_file,
+                "timestamp": datetime.now().isoformat()
+            },
+            ip_address=get_request_ip(request) if request else None,
+            user_agent=request.headers.get("user-agent") if request else None,
+            status_code=200
+        )
+        
         return {"message": "Backup created successfully", "file": backup_file}
     except Exception as e:
+        # Log backup failure
+        log_activity(
+            db=db,
+            action="backup_failed",
+            user_id=current_user.get("uid"),
+            user_email=user_identifier,
+            resource_type="database",
+            details={
+                "error": str(e),
+                "error_type": type(e).__name__
+            },
+            ip_address=get_request_ip(request) if request else None,
+            user_agent=request.headers.get("user-agent") if request else None,
+            status_code=500
+        )
         raise HTTPException(status_code=500, detail=f"Backup failed: {str(e)}")
 # ----------------------------
 # Authentication Endpoints
@@ -402,14 +565,46 @@ def signup(user: UserCreate, db: Session = Depends(get_db)):
 # Note: In a Firebase-driven system, the client typically handles authentication.
 # For demonstration, the login endpoint below simply verifies the provided Firebase ID token.
 @app.post("/auth/login", response_model=Token)
-def login(credentials: HTTPAuthorizationCredentials = Depends(firebase_scheme), db: Session = Depends(get_db)):
+def login(
+    credentials: HTTPAuthorizationCredentials = Depends(firebase_scheme),
+    request: Request = None,
+    db: Session = Depends(get_db)
+):
     try:
         # Verify the Firebase token sent by the client
         decoded_token = auth.verify_id_token(credentials.credentials)
+        
+        # Log successful login with detailed user info
+        log_activity(
+            db=db,
+            action="login_success",
+            user_id=decoded_token.get("uid"),
+            user_email=decoded_token.get("email"),
+            details={
+                "method": "firebase",
+                "roles": decoded_token.get("roles", []),
+                "auth_time": decoded_token.get("auth_time")
+            },
+            ip_address=get_request_ip(request),
+            user_agent=request.headers.get("user-agent"),
+            status_code=200
+        )
+        
+        return {"access_token": credentials.credentials, "token_type": "Bearer"}
     except Exception as e:
+        # Log failed login attempt with error details
+        log_activity(
+            db=db,
+            action="login_failed",
+            details={
+                "error": str(e),
+                "error_type": type(e).__name__
+            },
+            ip_address=get_request_ip(request),
+            user_agent=request.headers.get("user-agent"),
+            status_code=401
+        )
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Firebase token")
-    # Optionally, you could update the local user record or sync roles.
-    return {"access_token": credentials.credentials, "token_type": "Bearer"}
 
 # Dependency to retrieve the current user from Firebase token and match with local DB
 def get_current_user(token: HTTPAuthorizationCredentials = Depends(firebase_scheme), db: Session = Depends(get_db)) -> DBUser:
@@ -452,6 +647,7 @@ def student_area(user: dict = Depends(require_roles(["student"]))):
 @app.post("/grades/", response_model=GradeResponse)
 def add_grade(
     grade: GradeCreate, 
+    request: Request = None,
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(["admin", "teacher"]))
 ):
@@ -466,8 +662,43 @@ def add_grade(
             grade=grade.grade,
             changed_by=user_identifier
         )
+        
+        # Log grade creation
+        log_activity(
+            db=db,
+            action="create_grade",
+            user_id=current_user.get("uid"),
+            user_email=user_identifier,
+            resource_type="grade",
+            resource_id=created_grade.id,
+            details={
+                "student_id": grade.student_id,
+                "subject": grade.subject,
+                "grade": grade.grade
+            },
+            ip_address=get_request_ip(request),
+            user_agent=request.headers.get("user-agent") if request else None,
+            status_code=201
+        )
+        
         return GradeResponse.from_orm(created_grade)
     except ValueError as e:
+        # Log failure
+        log_activity(
+            db=db,
+            action="create_grade_failed",
+            user_id=current_user.get("uid"),
+            user_email=user_identifier,
+            resource_type="grade",
+            details={
+                "error": str(e),
+                "student_id": grade.student_id,
+                "subject": grade.subject
+            },
+            ip_address=get_request_ip(request) if request else None,
+            user_agent=request.headers.get("user-agent") if request else None,
+            status_code=400
+        )
         raise HTTPException(status_code=400, detail=str(e))
 
 
@@ -540,6 +771,23 @@ async def upload_grades(
     # Create validator with specified range
     validator = GradeValidator(min_grade=min_grade, max_grade=max_grade)
     
+    log_activity(
+        db=db,
+        action="bulk_upload_start",
+        user_id=current_user.get("uid"),
+        user_email=user_identifier,
+        resource_type="grades",
+        details={
+            "filename": file.filename,
+            "content_type": file.content_type,
+            "min_grade": min_grade,
+            "max_grade": max_grade
+        },
+        ip_address=get_request_ip(request) if request else None,
+        user_agent=request.headers.get("user-agent") if request else None,
+        status_code=202  # Accepted, processing
+    )
+
     # Ensure min_grade <= max_grade
     if min_grade > max_grade:
         raise HTTPException(
@@ -820,24 +1068,73 @@ def get_all_grade_history_endpoint(  # ← Renamed function to avoid conflict
 @app.put("/users/me", response_model=User)
 def update_profile(
     profile_update: UserProfileUpdate,
+    request: Request = None,
     db: Session = Depends(get_db),
     current_user: DBUser = Depends(get_current_user)
 ):
     """Update the current user's profile."""
-    # Check if email is being updated and if it's already taken
+    # Track what fields are changing
+    changed_fields = []
     if profile_update.email and profile_update.email != current_user.email:
-        existing_user = db.query(DBUser).filter(DBUser.email == profile_update.email).first()
-        if existing_user:
-            raise HTTPException(status_code=400, detail="Email already registered")
-        current_user.email = profile_update.email
-    
-    # Update password if provided
+        changed_fields.append("email")
     if profile_update.password:
-        current_user.hashed_password = get_password_hash(profile_update.password)
+        changed_fields.append("password")
     
-    db.commit()
-    db.refresh(current_user)
-    return current_user
+    # Original profile state for logging
+    original_email = current_user.email
+    
+    try:
+        # Check if email is being updated and if it's already taken
+        if profile_update.email and profile_update.email != current_user.email:
+            existing_user = db.query(DBUser).filter(DBUser.email == profile_update.email).first()
+            if existing_user:
+                raise HTTPException(status_code=400, detail="Email already registered")
+            current_user.email = profile_update.email
+        
+        # Update password if provided
+        if profile_update.password:
+            current_user.hashed_password = get_password_hash(profile_update.password)
+        
+        db.commit()
+        db.refresh(current_user)
+        
+        # Log profile update
+        log_activity(
+            db=db,
+            action="profile_update",
+            user_id=str(current_user.id),  # Convert to string for consistency
+            user_email=current_user.email,
+            resource_type="user_profile",
+            resource_id=str(current_user.id),
+            details={
+                "changed_fields": changed_fields,
+                "old_email": original_email if "email" in changed_fields else None,
+                "password_changed": "password" in changed_fields
+            },
+            ip_address=get_request_ip(request) if request else None,
+            user_agent=request.headers.get("user-agent") if request else None,
+            status_code=200
+        )
+        
+        return current_user
+    except HTTPException as e:
+        # Log failed profile update
+        log_activity(
+            db=db,
+            action="profile_update_failed",
+            user_id=str(current_user.id),
+            user_email=current_user.email,
+            resource_type="user_profile",
+            resource_id=str(current_user.id),
+            details={
+                "error": e.detail,
+                "attempted_fields": changed_fields
+            },
+            ip_address=get_request_ip(request) if request else None,
+            user_agent=request.headers.get("user-agent") if request else None,
+            status_code=e.status_code
+        )
+        raise
 
 # Admin endpoint to get any user's profile
 @app.get("/users/{user_id}", response_model=User)
@@ -887,23 +1184,44 @@ def update_user_profile(
 @app.post("/courses/", response_model=CourseResponse)
 def create_new_course(
     course: CourseCreate,
+    request: Request = None,
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(["admin", "teacher"]))
 ):
     """Create a new course (admin and teachers only)"""
+    user_identifier = current_user.get("email", current_user.get("uid", "unknown"))
+    
     # If a teacher is creating the course, automatically assign themselves
     teacher_id = None
     if "teacher" in current_user.get("roles", []) and "admin" not in current_user.get("roles", []):
-        # In a real app, you'd get the teacher's database ID from their Firebase ID
-        # For now, we use a placeholder approach
-        teacher_id = course.teacher_id  # This would be retrieved from the user record
+        teacher_id = course.teacher_id
     
-    return create_course(
+    created_course = create_course(
         db, 
         name=course.name, 
         description=course.description,
         teacher_id=teacher_id or course.teacher_id
     )
+    
+    # Log course creation
+    log_activity(
+        db=db,
+        action="create_course",
+        user_id=current_user.get("uid"),
+        user_email=user_identifier,
+        resource_type="course",
+        resource_id=created_course.id,
+        details={
+            "name": course.name,
+            "description": course.description,
+            "teacher_id": created_course.teacher_id
+        },
+        ip_address=get_request_ip(request) if request else None,
+        user_agent=request.headers.get("user-agent") if request else None,
+        status_code=201
+    )
+    
+    return created_course
 
 @app.get("/courses/", response_model=List[CourseResponse])
 def list_courses(
@@ -935,6 +1253,7 @@ def get_course_by_id(
 def add_student_endpoint(
     course_id: int = Path(..., gt=0),
     student_id: int = Path(..., gt=0),
+    request: Request = None,
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_roles(["admin", "teacher"]))
 ):
@@ -949,11 +1268,45 @@ def add_student_endpoint(
             course_id=course_id,
             added_by=user_identifier
         )
+        
+        # Log enrollment
+        log_activity(
+            db=db,
+            action="enroll_student",
+            user_id=current_user.get("uid"),
+            user_email=user_identifier,
+            resource_type="enrollment",
+            resource_id=enrollment.id,
+            details={
+                "student_id": student_id,
+                "course_id": course_id
+            },
+            ip_address=get_request_ip(request) if request else None,
+            user_agent=request.headers.get("user-agent") if request else None,
+            status_code=200
+        )
+        
         return {
             "message": f"Student {student_id} added to course {course_id}",
             "enrollment": enrollment
         }
     except ValueError as e:
+        # Log failure
+        log_activity(
+            db=db,
+            action="enroll_student_failed",
+            user_id=current_user.get("uid"),
+            user_email=user_identifier,
+            resource_type="enrollment",
+            details={
+                "error": str(e),
+                "student_id": student_id,
+                "course_id": course_id
+            },
+            ip_address=get_request_ip(request) if request else None,
+            user_agent=request.headers.get("user-agent") if request else None,
+            status_code=400
+        )
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.delete("/courses/{course_id}/students/{student_id}", response_model=dict)
@@ -1099,6 +1452,136 @@ def delete_student_endpoint(student_id: int, db: Session = Depends(get_db)):
     if not student:
         raise HTTPException(status_code=404, detail="Student not found")
     return {"detail": "Student deleted"}
+
+# ----------------------------
+# Logs Endpoints
+# ----------------------------
+
+@app.get("/admin/logs", response_model=LogsResponse)
+def get_activity_logs(
+    user_id: Optional[str] = Query(None, description="Filter by user ID"),
+    user_email: Optional[str] = Query(None, description="Filter by user email"),
+    action: Optional[str] = Query(None, description="Filter by action"),
+    resource_type: Optional[str] = Query(None, description="Filter by resource type"),
+    start_date: Optional[str] = Query(None, description="Filter by start date (ISO format)"),
+    end_date: Optional[str] = Query(None, description="Filter by end date (ISO format)"),
+    limit: int = Query(25, ge=1, le=100),
+    page: int = Query(1, ge=1),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(["admin"]))
+):
+    """Admin endpoint to view activity logs with filtering."""
+    # Calculate offset from page
+    offset = (page - 1) * limit
+    
+    # Get count for total (with filters applied)
+    query = db.query(ActivityLog)
+    if user_id:
+        query = query.filter(ActivityLog.user_id == user_id)
+    if user_email:
+        query = query.filter(ActivityLog.user_email == user_email)
+    if action:
+        query = query.filter(ActivityLog.action.like(f"%{action}%"))
+    if resource_type:
+        query = query.filter(ActivityLog.resource_type == resource_type)
+    if start_date:
+        query = query.filter(ActivityLog.timestamp >= start_date)
+    if end_date:
+        query = query.filter(ActivityLog.timestamp <= end_date)
+    
+    total = query.count() or 0
+    
+    # Get logs with pagination
+    logs = get_logs(
+        db, 
+        user_id=user_id,
+        action=action, 
+        resource_type=resource_type,
+        start_date=start_date,
+        end_date=end_date,
+        limit=limit, 
+        offset=offset
+    )
+    
+    # Calculate total pages
+    total_pages = (total + limit - 1) // limit if total > 0 else 1
+    
+    # Format response
+    return {
+        "items": logs,
+        "total": total,
+        "page": page,
+        "pages": total_pages,
+        "limit": limit
+    }
+
+@app.get("/admin/logs/export", response_class=StreamingResponse)
+def export_logs(
+    format: str = Query("csv", pattern="^(csv|json)$"),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(require_roles(["admin"]))
+):
+    """Export all logs as CSV or JSON."""
+    # Get all logs with date filtering but no pagination
+    query = db.query(ActivityLog)
+    if start_date:
+        query = query.filter(ActivityLog.timestamp >= start_date)
+    if end_date:
+        query = query.filter(ActivityLog.timestamp <= end_date)
+    
+    logs = query.order_by(ActivityLog.timestamp.desc()).all()
+    
+    if format.lower() == "json":
+        # Convert logs to JSON
+        import json
+        from pydantic import parse_obj_as
+        
+        logs_json = json.dumps([{
+            "id": log.id,
+            "user_id": log.user_id,
+            "user_email": log.user_email,
+            "timestamp": log.timestamp,
+            "action": log.action,
+            "resource_type": log.resource_type,
+            "resource_id": log.resource_id,
+            "details": log.details,
+            "ip_address": log.ip_address,
+            "status_code": log.status_code
+        } for log in logs], indent=2)
+        
+        return StreamingResponse(
+            io.StringIO(logs_json),
+            media_type="application/json",
+            headers={"Content-Disposition": f"attachment; filename=logs_{datetime.now().strftime('%Y%m%d')}.json"}
+        )
+    else:
+        # Convert logs to CSV
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write header
+        writer.writerow([
+            'id', 'user_id', 'user_email', 'timestamp', 'action', 
+            'resource_type', 'resource_id', 'details', 'ip_address', 'status_code'
+        ])
+        
+        # Write data rows
+        for log in logs:
+            writer.writerow([
+                log.id, log.user_id, log.user_email, log.timestamp, log.action,
+                log.resource_type, log.resource_id, log.details, log.ip_address, log.status_code
+            ])
+        
+        # Reset buffer position
+        output.seek(0)
+        
+        return StreamingResponse(
+            output,
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename=logs_{datetime.now().strftime('%Y%m%d')}.csv"}
+        )
 
 # ----------------------------
 # HTTPS Entry Point
