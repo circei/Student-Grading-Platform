@@ -8,7 +8,13 @@ import { Role } from './database/models/role.model';
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
   { path: 'signup', component: SignupComponent }, // Adaugă ruta de signup
-
+  
+  {
+    path: 'admin-dashboard',
+    loadComponent: () => import('./admin/admin.component').then(m => m.AdminComponent),
+    canActivate: [authGuard, roleGuard],
+    data: { allowedRoles: [Role.Admin] }
+  },
   {
     path: 'student-dashboard',
     // component: StudentDashboardComponent,
@@ -27,6 +33,12 @@ export const routes: Routes = [
     path: 'grade-management',
     // component: GradeManagementComponent,
     loadComponent: () => import('./teacher/grade-management/grade-management.component').then(m => m.GradeManagementComponent),
+    canActivate: [authGuard, roleGuard],
+    data: { allowedRoles: [Role.Teacher, Role.Admin] }
+  },
+  {
+    path: 'class-management',
+    loadComponent: () => import('./teacher/class-management/class-management.component').then(m => m.ClassManagementComponent),
     canActivate: [authGuard, roleGuard],
     data: { allowedRoles: [Role.Teacher, Role.Admin] }
   },

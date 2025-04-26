@@ -28,31 +28,31 @@ export class AuthService implements OnDestroy {
     private isLoggedInSubject = new BehaviorSubject<boolean>(false);
     public isLoggedIn$ = this.isLoggedInSubject.asObservable();
 
-    private isLoadingSubject = new BehaviorSubject<boolean>(true); // Stare de încărcare inițială
+    private isLoadingSubject = new BehaviorSubject<boolean>(true);
     public isLoading$ = this.isLoadingSubject.asObservable();
 
     constructor() {
         console.log('AuthService Initialized');
         this.authStateListener = onAuthStateChanged(this.auth, async (user) => {
-            this.isLoadingSubject.next(true); // Începe încărcarea stării
+            this.isLoadingSubject.next(true);
             if (user) {
                 console.log('Auth State: Logged In - UID:', user.uid);
                 try {
-                    const tokenResult = await getIdTokenResult(user, false); // false - nu forța refresh dacă nu e expirat
-                    const roles = (tokenResult.claims['roles'] as Role[]) || []; // Extrage roluri (asigură-te că backend/Firebase le setează!)
+                    // --- PAS NOU: Obține rolurile prin metoda abstractizată ---
+                    const roles = await this._resolveUserRoles(user);
+                    // ------------------------------------------------------
                     const appUser: AppUser = {
                         uid: user.uid,
                         email: user.email,
-                        name: user.displayName, // Numele inițial din Firebase
-                        roles: roles
+                        name: user.displayName,
+                        roles: roles // Folosește rolurile returnate de metoda privată
                     };
                     this.currentUserSubject.next(appUser);
                     this.isLoggedInSubject.next(true);
-                     console.log('Auth State: User data set - Roles:', roles);
+                     console.log('Auth State: User data set - Roles (resolved):', roles);
                 } catch (error) {
-                    console.error("Auth State: Error getting token result:", error);
-                    // Eroare la obținere token/claims, tratăm ca delogat
-                    await signOut(this.auth); // Forțează logout din Firebase
+                    console.error("Auth State: Error resolving user roles or during state change:", error);
+                    await signOut(this.auth); // Forțează logout din Firebase dacă apar erori grave
                     this.currentUserSubject.next(null);
                     this.isLoggedInSubject.next(false);
                 }
@@ -61,8 +61,50 @@ export class AuthService implements OnDestroy {
                 this.currentUserSubject.next(null);
                 this.isLoggedInSubject.next(false);
             }
-             this.isLoadingSubject.next(false); // Finalizează încărcarea stării
+             this.isLoadingSubject.next(false);
         });
+    }
+
+    // --- METODA PRIVATĂ PENTRU ROLURI ---
+    private async _resolveUserRoles(user: User): Promise<Role[]> {
+        // --- Implementare Temporară (Hardcodată) ---
+        console.warn("AuthService: Using TEMPORARY role assignment logic!");
+        // TODO: Înlocuiește această logică cu cea finală când Firebase Custom Claims sunt gata.
+        const email = user.email?.toLowerCase();
+        if (email?.endsWith('@prof.uni.ro') || email === 'teacher@example.com') { // Adaugă emailuri de test
+            console.log(`Temporary logic: Assigning [${Role.Teacher}] based on email.`);
+            return [Role.Teacher];
+        } else if (email?.endsWith('@stud.uni.ro') || email === 'student@example.com') {
+            console.log(`Temporary logic: Assigning [${Role.Student}] based on email.`);
+            return [Role.Student];
+        } else if (email === 'admin@example.com') {
+             console.log(`Temporary logic: Assigning [${Role.Admin}] based on email.`);
+             return [Role.Admin];
+        }
+         console.log(`Temporary logic: Assigning [] (no role) based on email.`);
+        return []; // Default: fără roluri
+        // --- Sfârșit Implementare Temporară ---
+
+
+        /*
+        // --- Implementare Finală (Comentată acum) ---
+        // TODO: Decomentează și șterge/comentează logica temporară de mai sus când ești gata.
+        console.log("AuthService: Using FINAL role assignment logic from Firebase Token Claims.");
+        try {
+            // false: nu forța refresh dacă nu e nevoie, true: forțează refresh (util după login/signup)
+            const tokenResult = await getIdTokenResult(user, false);
+            const roles = (tokenResult.claims['roles'] as Role[]) || [];
+            console.log('Fetched roles from token claims:', roles);
+            return roles;
+        } catch (error) {
+            console.error("Error fetching token result for roles:", error);
+            // Decide cum gestionezi eroarea: returnezi roluri goale, deloghezi, etc.
+            // Poate fi necesar un logout forțat dacă token-ul e invalid/expirat și nu poate fi reîmprospătat
+            // await signOut(this.auth);
+            return [];
+        }
+        // --- Sfârșit Implementare Finală ---
+        */
     }
 
     ngOnDestroy(): void {
