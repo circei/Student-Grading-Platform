@@ -1,0 +1,35 @@
+<div class="login-container">
+    <h2>Autentificare</h2>
+    <form [formGroup]="loginForm" (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label for="email">Email:</label>
+        <input type="email" id="email" formControlName="email" placeholder="nume@exemplu.com" required>
+        @if (loginForm.controls.email.invalid && (loginForm.controls.email.dirty || loginForm.controls.email.touched)) {
+           <div class="error-message">
+              @if (loginForm.controls.email.errors?.['required']) { Email este obligatoriu. }
+              @if (loginForm.controls.email.errors?.['email']) { Email invalid. }
+           </div>
+        }
+      </div>
+  
+      <div class="form-group">
+        <label for="password">Parolă:</label>
+        <input type="password" id="password" formControlName="password" required>
+         @if (loginForm.controls.password.invalid && (loginForm.controls.password.dirty || loginForm.controls.password.touched)) {
+           <div class="error-message"> Parola este obligatorie. </div>
+        }
+      </div>
+  
+      @if (errorMessage) {
+        <div class="error-message server-error">{{ errorMessage }}</div>
+      }
+  
+      <button type="submit" [disabled]="loginForm.invalid || isLoading">
+        {{ isLoading ? 'Se încarcă...' : 'Login' }}
+      </button>
+  
+       <p class="signup-link">
+          Nu ai cont? <a routerLink="/signup">Înregistrează-te aici</a>
+       </p>
+    </form>
+  </div>

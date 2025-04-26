@@ -1,0 +1,100 @@
+/* src/app/components/login/login.component.css */
+.login-container {
+    max-width: 400px;
+    margin: 40px auto;
+    padding: 30px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    font-family: sans-serif;
+  }
+  
+  .login-container h2 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 25px;
+  }
+  
+  .form-group {
+    margin-bottom: 20px;
+  }
+  
+  .form-group label {
+    display: block;
+    margin-bottom: 6px;
+    color: #555;
+    font-weight: bold;
+    font-size: 0.9em;
+  }
+  
+  .form-group input[type="email"],
+  .form-group input[type="password"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box; /* Include padding/border în lățime */
+    font-size: 1em;
+  }
+  
+  .form-group input:focus {
+      border-color: #007bff;
+      outline: none;
+      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  }
+  
+  
+  button[type="submit"] {
+    width: 100%;
+    padding: 12px;
+    background-color: #007bff; /* Albastru pentru login */
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1.1em;
+    font-weight: bold;
+    transition: background-color 0.2s ease;
+  }
+  
+  button[type="submit"]:disabled {
+    background-color: #aaa;
+    cursor: not-allowed;
+  }
+  
+  button[type="submit"]:not(:disabled):hover {
+    background-color: #0056b3;
+  }
+  
+  .error-message {
+    color: #dc3545; /* Roșu pentru erori */
+    font-size: 0.85em;
+    margin-top: 5px;
+  }
+  
+  .server-error {
+      background-color: #f8d7da;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 15px;
+      text-align: center;
+  }
+  
+  .signup-link {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 0.9em;
+      color: #555;
+  }
+  
+  .signup-link a {
+      color: #007bff;
+      text-decoration: none;
+      font-weight: bold;
+  }
+  
+  .signup-link a:hover {
+      text-decoration: underline;
+  }

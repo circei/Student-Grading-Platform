@@ -1,25 +1,48 @@
 import { Routes } from '@angular/router';
-import { AuthComponent } from './auth/auth.component';
-import { ForgotPasswordComponent } from './auth/forgot-password/forgot-password.component';
-import { AdminComponent } from './admin/admin.component';
-import { TeacherDashboardComponent } from './teacher/teacher-dashboard/teacher-dashboard.component';
-import { ClassManagementComponent } from './teacher/class-management/class-management.component';
-import { GradeManagementComponent } from './teacher/grade-management/grade-management.component';
-import { StudentDashboardComponent } from './student/student-dashboard/student-dashboard.component';
-import { GradeViewComponent } from './student/grade-view/grade-view.component';
-import { ProgressViewComponent } from './student/progress-view/progress-view.component';
-import { ProfileComponent } from './shared/profile/profile.component';
+import { LoginComponent } from './auth/login/login.component';
+import { authGuard } from './guards/auth.guard';
+import { SignupComponent } from './auth/signup/signup.component';
+import { roleGuard } from './guards/role.guard';
+import { Role } from './database/models/role.model';
 
 export const routes: Routes = [
-  { path: '', redirectTo: 'profile', pathMatch: 'full' },
-  { path: 'auth', component: AuthComponent },
-  { path: 'forgot-password', component: ForgotPasswordComponent },
-  { path: 'admin', component: AdminComponent },
-  { path: 'teacher-dashborad', component: TeacherDashboardComponent },
-  { path: 'class-management', component: ClassManagementComponent },
-  { path: 'grade-management', component: GradeManagementComponent },
-  { path: 'student-dashboard', component: StudentDashboardComponent },
-  { path: 'grade-view', component: GradeViewComponent },
-  { path: 'progress-view', component: ProgressViewComponent },
-  { path: 'profile', component: ProfileComponent }, 
+  { path: 'login', component: LoginComponent },
+  { path: 'signup', component: SignupComponent }, // Adaugă ruta de signup
+  
+  {
+    path: 'admin-dashboard',
+    loadComponent: () => import('./admin/admin.component').then(m => m.AdminComponent),
+    canActivate: [authGuard, roleGuard],
+    data: { allowedRoles: [Role.Admin] }
+  },
+  {
+    path: 'student-dashboard',
+    // component: StudentDashboardComponent,
+    loadComponent: () => import('./student/student-dashboard/student-dashboard.component').then(m => m.StudentDashboardComponent),
+    canActivate: [authGuard, roleGuard], // Aplică ambele guard-uri
+    data: { allowedRoles: [Role.Student] } // Specifică rolurile permise aici
+  },
+  {
+    path: 'teacher-dashboard',
+   // component: TeacherDashboardComponent,
+   loadComponent: () => import('./teacher/teacher-dashboard/teacher-dashboard.component').then(m => m.TeacherDashboardComponent),
+    canActivate: [authGuard, roleGuard],
+    data: { allowedRoles: [Role.Teacher, Role.Admin] } // Profesorii și Adminii pot accesa
+  },
+   {
+    path: 'grade-management',
+    // component: GradeManagementComponent,
+    loadComponent: () => import('./teacher/grade-management/grade-management.component').then(m => m.GradeManagementComponent),
+    canActivate: [authGuard, roleGuard],
+    data: { allowedRoles: [Role.Teacher, Role.Admin] }
+  },
+  {
+    path: 'class-management',
+    loadComponent: () => import('./teacher/class-management/class-management.component').then(m => m.ClassManagementComponent),
+    canActivate: [authGuard, roleGuard],
+    data: { allowedRoles: [Role.Teacher, Role.Admin] }
+  },
+  // Redirecționări
+  { path: '', redirectTo: '/login', pathMatch: 'full' }, // Redirecționează la login default
+  { path: '**', redirectTo: '/login' } 
 ];

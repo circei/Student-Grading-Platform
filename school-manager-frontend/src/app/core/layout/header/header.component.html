@@ -1,1 +1,57 @@
-<p>header works!</p>
+<header class="app-header">
+    <div class="header-content">
+  
+      @if (authService.isLoggedIn$ | async) {
+        <nav class="main-navigation">
+          <ul>
+            @if (authService.hasAnyRole([RoleEnum.Admin]) | async) {
+              <li><a routerLink="/admin-dashboard" routerLinkActive="active-link">Dashboard</a></li>
+            } @else if (authService.hasAnyRole([RoleEnum.Teacher]) | async) {
+              <li><a routerLink="/teacher-dashboard" routerLinkActive="active-link">Dashboard</a></li>
+            } @else if (authService.hasAnyRole([RoleEnum.Student]) | async) {
+              <li><a routerLink="/student-dashboard" routerLinkActive="active-link">Dashboard</a></li>
+            } @else {
+              <li><a routerLink="/" routerLinkActive="active-link">Acasă</a></li>
+            }
+            @if (authService.hasAnyRole([RoleEnum.Student]) | async) {
+              <li><a routerLink="/grade-view" routerLinkActive="active-link">Notele Mele</a></li>
+              <li><a routerLink="/progress-view" routerLinkActive="active-link">Progres</a></li>
+            }
+  
+            @if (authService.hasAnyRole([RoleEnum.Teacher]) | async) {
+              <li><a routerLink="/grade-management" routerLinkActive="active-link">Management Note</a></li>
+              <li><a routerLink="/class-management" routerLinkActive="active-link">Management Clase</a></li>
+            }
+  
+            @if (authService.hasAnyRole([RoleEnum.Admin]) | async) {
+               <li><a routerLink="/user-management" routerLinkActive="active-link">Utilizatori</a></li>
+               }
+          </ul>
+        </nav>
+      } @else {
+        <nav class="main-navigation"></nav>
+      }
+  
+      <div class="user-actions">
+         @if (authService.isLoggedIn$ | async; as loggedIn) {
+          @if(authService.currentUser$ | async; as user) {
+            <div class="user-info">
+              <span class="welcome-message">Salut, {{ user.name || user.email }}!</span>
+              <a routerLink="/profile" class="profile-link" title="Vezi Profilul">
+                 <span class="material-icons">account_circle</span>
+              </a>
+              <button (click)="logout()" class="logout-button" title="Deconectare">
+                <span class="material-icons">logout</span>
+                <span class="logout-text">Logout</span>
+              </button>
+            </div>
+          }
+        } @else {
+          <a routerLink="/login" class="login-link">
+            <span class="material-icons">login</span> Login
+          </a>
+        }
+      </div>
+  
+    </div>
+  </header>
