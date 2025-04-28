@@ -1,0 +1,40 @@
+name: Doxygen Documentation
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  generate-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Doxygen
+        run: sudo apt-get install doxygen -y
+
+      - name: Generate default Doxyfile
+        run: doxygen -g Doxyfile
+
+      - name: Configure Doxyfile
+        run: |
+          sed -i 's|^OUTPUT_DIRECTORY .*|OUTPUT_DIRECTORY = docs|' Doxyfile
+          sed -i 's|^INPUT .*|INPUT = src|' Doxyfile
+          sed -i 's|^RECURSIVE .*|RECURSIVE = YES|' Doxyfile
+          sed -i 's|^GENERATE_LATEX .*|GENERATE_LATEX = NO|' Doxyfile
+          sed -i 's|^GENERATE_HTML .*|GENERATE_HTML = YES|' Doxyfile
+
+      - name: Run Doxygen
+        run: doxygen Doxyfile
+
+      - name: Upload Documentation as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: doxygen-docs
+          path: docs/html
